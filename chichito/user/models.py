@@ -25,7 +25,8 @@ class User(AbstractBaseUser):
     class SexChoices(models.TextChoices):
         MALE = 'M', _('مرد')
         FEMALE = 'F', _('زن')
-    username = models.CharField(max_length=255,
+    username = models.CharField(unique=True,
+                                max_length=255,
                                 validators=[MinLengthValidator(5)])
     first_name = models.CharField(max_length=255)
     last_name = models.CharField(max_length=255)
