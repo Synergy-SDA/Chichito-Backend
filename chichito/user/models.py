@@ -2,18 +2,19 @@ from django.db import models
 from django.contrib.auth.models import AbstractBaseUser, BaseUserManager
 from django.db import models
 from django.utils import timezone
+from django.core.validators import MinLengthValidator
 
 from django.utils.translation import gettext_lazy as _
 
 class CustomUserManager (BaseUserManager):
 
-    def create_user(self, email, password=None, **extra_fields):
+    def create_user(self, mail, password=None, **extra_fields):
 
-        if not email:
+        if not mail:
             return ValueError(_('وارد کردن ایمیل الزامی است'))
 
-        email = self.normalize_email(email)
-        user = self.model(email=email, **extra_fields)
+        mail = self.normalize_email(mail)
+        user = self.model(mail=mail, **extra_fields)
         user.set_password(password)
         user.save(using=self._db)
 
@@ -24,7 +25,10 @@ class User(AbstractBaseUser):
     class SexChoices(models.TextChoices):
         MALE = 'M', _('مرد')
         FEMALE = 'F', _('زن')
-
+    username = models.CharField(default='salam',
+                                unique=True,
+                                max_length=255,
+                                validators=[MinLengthValidator(5)])
     first_name = models.CharField(max_length=255)
     last_name = models.CharField(max_length=255)
     phone_number = models.CharField(unique=True, max_length=255)
@@ -38,7 +42,7 @@ class User(AbstractBaseUser):
     is_staff = models.BooleanField(default=False)
     is_superuser = models.BooleanField(default=False)
 
-    USERNAME_FIELD = 'phone_number' 
+    USERNAME_FIELD = 'username' 
     REQUIRED_FIELDS = ['first_name', 'last_name']  
 
    
