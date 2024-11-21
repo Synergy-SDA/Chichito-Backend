@@ -9,7 +9,14 @@ from .models import Category
 
 class CategoryAPIView(APIView):
     
-
+    @swagger_auto_schema(
+        operation_description="Create a new category.",
+        request_body=CategorySerializer,
+        responses={
+            201: openapi.Response("Category created successfully.", CategorySerializer),
+            400: "Invalid input data.",
+        },
+    )
     def post(self, request, *args, **kwargs):
         
         serializer = CategorySerializer(data=request.data)
