@@ -12,7 +12,7 @@ class UserSignupView(APIView):
     @swagger_auto_schema(
         operation_summary="User Signup",
         operation_description="Create a new user and return JWT tokens.",
-        request_body=UserSignupSerializer,  # Specify the serializer for request body
+        request_body=UserSignupSerializer,  
         responses={
             201: openapi.Response(
                 description="Signup successful.",
@@ -58,7 +58,7 @@ class UserLoginView(APIView):
     @swagger_auto_schema(
         operation_summary="User Login",
         operation_description="Authenticate user and return JWT tokens.",
-        request_body=UserLoginSerializer,  # Specify the serializer for request body
+        request_body=UserLoginSerializer, 
         responses={
             200: openapi.Response(
                 description="Login successful.",
