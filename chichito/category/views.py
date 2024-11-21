@@ -18,7 +18,14 @@ class CategoryAPIView(APIView):
             return Response(serializer.data, status=status.HTTP_201_CREATED)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
-
+    
+    @swagger_auto_schema(
+        operation_description="Retrieve a list of all categories or a specific category by ID.",
+        responses={
+            200: openapi.Response("Success", CategorySerializer(many=True)),
+            404: "Category not found.",
+        },
+    )
     def get(self, request, pk=None, *args, **kwargs):
         if pk:
             try:
@@ -31,6 +38,7 @@ class CategoryAPIView(APIView):
             categories = Category.objects.all()
             serializer = CategorySerializer(categories, many=True)
             return Response(serializer.data)
+   
     @swagger_auto_schema(
         operation_description="Update an existing category by ID.",
         request_body=CategorySerializer,
