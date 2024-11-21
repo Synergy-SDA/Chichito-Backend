@@ -31,7 +31,15 @@ class CategoryAPIView(APIView):
             categories = Category.objects.all()
             serializer = CategorySerializer(categories, many=True)
             return Response(serializer.data)
-        
+    @swagger_auto_schema(
+        operation_description="Update an existing category by ID.",
+        request_body=CategorySerializer,
+        responses={
+            200: openapi.Response("Category updated successfully.", CategorySerializer),
+            400: "Invalid input data.",
+            404: "Category not found.",
+        },
+    )    
     def put(self, request, pk, *args, **kwargs):
         try:
             category = Category.objects.get(pk=pk)
