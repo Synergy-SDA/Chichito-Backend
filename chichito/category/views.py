@@ -44,7 +44,13 @@ class CategoryAPIView(APIView):
             return Response(serializer.data)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
-
+    @swagger_auto_schema(
+        operation_description="Delete a category by ID.",
+        responses={
+            204: "Category deleted successfully.",
+            404: "Category not found.",
+        },
+    )
     def delete(self, request, pk, *args, **kwargs):
         try:
             category = Category.objects.get(pk=pk)
