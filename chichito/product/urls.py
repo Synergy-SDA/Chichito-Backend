@@ -3,7 +3,7 @@ from .views import *
 from rest_framework import permissions
 from drf_yasg.views import get_schema_view
 from drf_yasg import openapi
-from .views import ProductListView
+from .views import ProductListView , ProductViewSet , FeatureViewSet , FeatureValueViewSet
 from rest_framework.routers import DefaultRouter
 
 
@@ -23,6 +23,12 @@ schema_view = get_schema_view(
 
 
 router = DefaultRouter()
-router.register(r'Product', ProductListView , basename='product')
+router.register(r'Product', ProductViewSet, basename='product')
+router.register(r'Feature', FeatureViewSet, basename='feature')
+router.register(r'FeatureValue', FeatureValueViewSet, basename='feature-value')
+router.register(r'ProductList', ProductListView, basename='product-list')
 
-urlpatterns = router.urls
+urlpatterns = [
+]
+
+urlpatterns += router.urls

@@ -30,10 +30,11 @@ class FeatureValueSerializer(serializers.ModelSerializer):
         return data
     def create(self, validated_data):
         feature = validated_data.pop('feature')
-        return FeatureValue.objects.create(feature=feature, **validated_data)
+        return FeatureValue.objects.create(feature=feature, **validated_data)   
+
 class ProductSerializer(serializers.ModelSerializer):
     features = serializers.ListField(
-        child=serializers.DictField(),  
+        child=serializers.DictField(),  # Accept a list of dictionaries
         write_only=True
     )
     category = CategorySerializer()
@@ -53,7 +54,6 @@ class ProductSerializer(serializers.ModelSerializer):
         ]
 
     def create(self, validated_data):
-        # Extract nested data
         features_data = validated_data.pop('features', [])
         category_data = validated_data.pop('category', None)
 
@@ -65,26 +65,22 @@ class ProductSerializer(serializers.ModelSerializer):
         # Create the product
         product = Product.objects.create(category=category, **validated_data)
 
-        # Handle feature values
+        # Process feature values
         for feature_data in features_data:
-            feature_name = feature_data.get('feature')
-            value = feature_data.get('value')
-
-            # Find or create FeatureValue
-            try:
-                feature_value = FeatureValue.objects.get(
-                    feature__name__iexact=feature_name,
-                    value__iexact=value
+            # Extract the key-value pair
+            for key, value in feature_data.items():
+                # Get or create the feature
+                feature, _ = Feature.objects.get_or_create(name=key)
+                # Create or retrieve the feature value
+                feature_value, _ = FeatureValue.objects.get_or_create(
+                    feature=feature,
+                    value=value
                 )
-            except FeatureValue.DoesNotExist:
-                # Create feature if it doesn't exist
-                feature, _ = Feature.objects.get_or_create(name=feature_name)
-                feature_value = FeatureValue.objects.create(feature=feature, value=value)
-
-            # Add feature value to the product
-            product.features.add(feature_value)
+                # Associate the feature value with the product
+                product.features.add(feature_value)
 
         return product
+
 
     def update(self, instance, validated_data):
         features_data = validated_data.pop('features', [])

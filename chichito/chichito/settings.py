@@ -146,4 +146,4 @@ CORS_ALLOWED_ORIGINS = [
 ]
 
 # settings.py
-DEBUG = True
+# DEBUG = True
