@@ -1,4 +1,3 @@
-from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework import status
 from django.shortcuts import get_object_or_404
@@ -7,42 +6,36 @@ from .serializers import *
 from rest_framework.pagination import PageNumberPagination
 from drf_yasg.utils import swagger_auto_schema
 from drf_yasg import openapi
-
+from rest_framework.viewsets import ViewSet
 
 class CustomPagination(PageNumberPagination):
     page_size = 10
     page_size_query_param = 'page_size'
     max_page_size = 100
 
-class ProductListView(APIView):
+class ProductListView(ViewSet):
+    queryset = Product.objects.all()
+    serializer_class = ProductSerializer
+
     @swagger_auto_schema(
-        operation_summary="Retrieve a list of products",
+        operation_summary="List all products with pagination",
         responses={
             200: openapi.Response(
-                description="List of products retrieved successfully",
-                schema=openapi.Schema(
-                    type=openapi.TYPE_OBJECT,
-                    properties={
-                        "count": openapi.Schema(type=openapi.TYPE_INTEGER),
-                        "next": openapi.Schema(type=openapi.TYPE_STRING, description="URL to next page"),
-                        "previous": openapi.Schema(type=openapi.TYPE_STRING, description="URL to previous page"),
-                        "results": openapi.Schema(
-                            type=openapi.TYPE_ARRAY,
-                            items=openapi.Items(type=openapi.TYPE_OBJECT, schema=ProductSerializer),
-                        ),
-                    },
-                ),
+                "A list of products with pagination",
+                ProductSerializer(many=True)
             ),
         },
     )
-    def get(self, request, *args, **kwargs):
+    def list(self, request, *args, **kwargs):
         queryset = Product.objects.all()
         paginator = CustomPagination()
         paginated_queryset = paginator.paginate_queryset(queryset, request)
         serializer = ProductSerializer(paginated_queryset, many=True)
         return paginator.get_paginated_response(serializer.data)
 
-class ProductAPIView(APIView):
+
+class ProductViewSet(ViewSet):
+    
     @swagger_auto_schema(
         operation_summary="Create a new product",
         request_body=ProductSerializer,
@@ -51,10 +44,10 @@ class ProductAPIView(APIView):
             400: "Validation error",
         },
     )
-    def post(self, request, *args, **kwargs):
+    def create(self, request, *args, **kwargs):
         serializer = ProductSerializer(data=request.data)
         if serializer.is_valid():
-            product = serializer.save()
+            serializer.save()
             return Response(serializer.data, status=status.HTTP_201_CREATED)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
@@ -64,20 +57,15 @@ class ProductAPIView(APIView):
             200: openapi.Response(description="Product retrieved successfully", schema=ProductSerializer),
             404: "Product not found",
         },
-        manual_parameters=[
-            openapi.Parameter(
-                "pk",
-                openapi.IN_PATH,
-                description="Primary key of the product to retrieve",
-                type=openapi.TYPE_INTEGER,
-                required=True,
-            ),
-        ],
     )
-    def get(self, request, pk=None, *args, **kwargs):
-        product = get_object_or_404(Product, pk=pk)
+    def retrieve(self, request, pk=None, *args, **kwargs):
+        try:
+            product = Product.objects.get(pk=pk)
+        except Product.DoesNotExist:
+            return Response({"detail": "Product not found."}, status=status.HTTP_404_NOT_FOUND)
+
         serializer = ProductSerializer(product)
-        return Response(serializer.data, status=status.HTTP_200_OK)
+        return Response(serializer.data)
 
     @swagger_auto_schema(
         operation_summary="Update a product",
@@ -87,22 +75,17 @@ class ProductAPIView(APIView):
             400: "Validation error",
             404: "Product not found",
         },
-        manual_parameters=[
-            openapi.Parameter(
-                "pk",
-                openapi.IN_PATH,
-                description="Primary key of the product to update",
-                type=openapi.TYPE_INTEGER,
-                required=True,
-            ),
-        ],
     )
-    def put(self, request, pk, *args, **kwargs):
-        product = get_object_or_404(Product, pk=pk)
-        serializer = ProductSerializer(product, data=request.data, partial=False)
+    def update(self, request, pk=None, *args, **kwargs):
+        try:
+            product = Product.objects.get(pk=pk)
+        except Product.DoesNotExist:
+            return Response({"detail": "Product not found."}, status=status.HTTP_404_NOT_FOUND)
+
+        serializer = ProductSerializer(product, data=request.data)
         if serializer.is_valid():
             serializer.save()
-            return Response(serializer.data, status=status.HTTP_200_OK)
+            return Response(serializer.data)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
     @swagger_auto_schema(
@@ -113,22 +96,17 @@ class ProductAPIView(APIView):
             400: "Validation error",
             404: "Product not found",
         },
-        manual_parameters=[
-            openapi.Parameter(
-                "pk",
-                openapi.IN_PATH,
-                description="Primary key of the product to partially update",
-                type=openapi.TYPE_INTEGER,
-                required=True,
-            ),
-        ],
     )
-    def patch(self, request, pk, *args, **kwargs):
-        product = get_object_or_404(Product, pk=pk)
+    def partial_update(self, request, pk=None, *args, **kwargs):
+        try:
+            product = Product.objects.get(pk=pk)
+        except Product.DoesNotExist:
+            return Response({"detail": "Product not found."}, status=status.HTTP_404_NOT_FOUND)
+
         serializer = ProductSerializer(product, data=request.data, partial=True)
         if serializer.is_valid():
             serializer.save()
-            return Response(serializer.data, status=status.HTTP_200_OK)
+            return Response(serializer.data)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
     @swagger_auto_schema(
@@ -137,22 +115,19 @@ class ProductAPIView(APIView):
             204: "Product deleted successfully",
             404: "Product not found",
         },
-        manual_parameters=[
-            openapi.Parameter(
-                "pk",
-                openapi.IN_PATH,
-                description="Primary key of the product to delete",
-                type=openapi.TYPE_INTEGER,
-                required=True,
-            ),
-        ],
     )
-    def delete(self, request, pk, *args, **kwargs):
-        product = get_object_or_404(Product, pk=pk)
-        product.delete()
-        return Response({"message": "Product deleted successfully."}, status=status.HTTP_204_NO_CONTENT)
+    def destroy(self, request, pk=None, *args, **kwargs):
+        try:
+            product = Product.objects.get(pk=pk)
+        except Product.DoesNotExist:
+            return Response({"detail": "Product not found."}, status=status.HTTP_404_NOT_FOUND)
 
-class FeatureAPIView(APIView):
+        product.delete()
+        return Response({"detail": "Product deleted."}, status=status.HTTP_204_NO_CONTENT)
+
+
+class FeatureViewSet(ViewSet):
+    
     @swagger_auto_schema(
         operation_summary="Create a new feature",
         request_body=FeatureSerializer,
@@ -161,7 +136,7 @@ class FeatureAPIView(APIView):
             400: "Validation error",
         },
     )
-    def post(self, request, *args, **kwargs):
+    def create(self, request, *args, **kwargs):
         serializer = FeatureSerializer(data=request.data)
         if serializer.is_valid():
             serializer.save()
@@ -174,17 +149,8 @@ class FeatureAPIView(APIView):
             200: openapi.Response(description="Feature(s) retrieved successfully", schema=FeatureSerializer(many=True)),
             404: "Feature not found",
         },
-        manual_parameters=[
-            openapi.Parameter(
-                "pk",
-                openapi.IN_PATH,
-                description="Primary key of the feature to retrieve (optional). If not provided, retrieves all features.",
-                type=openapi.TYPE_INTEGER,
-                required=False,
-            ),
-        ],
     )
-    def get(self, request, pk=None, *args, **kwargs):
+    def retrieve(self, request, pk=None, *args, **kwargs):
         if pk:
             try:
                 feature = Feature.objects.get(pk=pk)
@@ -205,17 +171,8 @@ class FeatureAPIView(APIView):
             400: "Validation error",
             404: "Feature not found",
         },
-        manual_parameters=[
-            openapi.Parameter(
-                "pk",
-                openapi.IN_PATH,
-                description="Primary key of the feature to update",
-                type=openapi.TYPE_INTEGER,
-                required=True,
-            ),
-        ],
     )
-    def put(self, request, pk, *args, **kwargs):
+    def update(self, request, pk=None, *args, **kwargs):
         try:
             feature = Feature.objects.get(pk=pk)
         except Feature.DoesNotExist:
@@ -233,17 +190,8 @@ class FeatureAPIView(APIView):
             204: "Feature deleted successfully",
             404: "Feature not found",
         },
-        manual_parameters=[
-            openapi.Parameter(
-                "pk",
-                openapi.IN_PATH,
-                description="Primary key of the feature to delete",
-                type=openapi.TYPE_INTEGER,
-                required=True,
-            ),
-        ],
     )
-    def delete(self, request, pk, *args, **kwargs):
+    def destroy(self, request, pk=None, *args, **kwargs):
         try:
             feature = Feature.objects.get(pk=pk)
         except Feature.DoesNotExist:
@@ -251,7 +199,15 @@ class FeatureAPIView(APIView):
 
         feature.delete()
         return Response({"detail": "Feature deleted."}, status=status.HTTP_204_NO_CONTENT)
-class FeatureValueAPIView(APIView):
+
+
+class FeatureValueViewSet(ViewSet):
+    """
+    A ViewSet for managing feature values.
+    """
+    queryset = FeatureValue.objects.all()
+    serializer_class = FeatureValueSerializer
+
     @swagger_auto_schema(
         operation_summary="Create a new feature value",
         request_body=FeatureValueSerializer,
@@ -260,12 +216,8 @@ class FeatureValueAPIView(APIView):
             400: "Validation error",
         },
     )
-    def post(self, request, *args, **kwargs):
-        serializer = FeatureValueSerializer(data=request.data)
-        if serializer.is_valid():
-            feature_value = serializer.save()
-            return Response(serializer.data, status=status.HTTP_201_CREATED)
-        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+    def create(self, request, *args, **kwargs):
+        return super().create(request, *args, **kwargs)
 
     @swagger_auto_schema(
         operation_summary="Retrieve feature value(s)",
@@ -273,39 +225,15 @@ class FeatureValueAPIView(APIView):
             200: openapi.Response(description="Feature value(s) retrieved successfully", schema=FeatureValueSerializer(many=True)),
             404: "Feature value not found",
         },
-        manual_parameters=[
-            openapi.Parameter(
-                "pk",
-                openapi.IN_PATH,
-                description="Primary key of the feature value to retrieve (optional). If not provided, retrieves all feature values.",
-                type=openapi.TYPE_INTEGER,
-                required=False,
-            ),
-            openapi.Parameter(
-                "feature",
-                openapi.IN_QUERY,
-                description="Filter feature values by feature name (optional)",
-                type=openapi.TYPE_STRING,
-                required=False,
-            ),
-        ],
     )
-    def get(self, request, pk=None, *args, **kwargs):
-        if pk:
-            try:
-                feature_value = FeatureValue.objects.get(pk=pk)
-            except FeatureValue.DoesNotExist:
-                return Response({"detail": "Feature value not found."}, status=status.HTTP_404_NOT_FOUND)
-            serializer = FeatureValueSerializer(feature_value)
-            return Response(serializer.data)
+    def list(self, request, *args, **kwargs):
+        feature_name = request.query_params.get('feature')
+        if feature_name:
+            feature_values = FeatureValue.objects.filter(feature__name=feature_name)
         else:
-            feature_name = request.query_params.get('feature')
-            if feature_name:
-                feature_values = FeatureValue.objects.filter(feature__name=feature_name)
-            else:
-                feature_values = FeatureValue.objects.all()
-            serializer = FeatureValueSerializer(feature_values, many=True)
-            return Response(serializer.data)
+            feature_values = FeatureValue.objects.all()
+        serializer = FeatureValueSerializer(feature_values, many=True)
+        return Response(serializer.data, status=status.HTTP_200_OK)
 
     @swagger_auto_schema(
         operation_summary="Update a feature value",
@@ -315,21 +243,13 @@ class FeatureValueAPIView(APIView):
             400: "Validation error",
             404: "Feature value not found",
         },
-        manual_parameters=[
-            openapi.Parameter(
-                "pk",
-                openapi.IN_PATH,
-                description="Primary key of the feature value to update",
-                type=openapi.TYPE_INTEGER,
-                required=True,
-            ),
-        ],
     )
-    def put(self, request, pk, *args, **kwargs):
+    def update(self, request, pk=None, *args, **kwargs):
         try:
             feature_value = FeatureValue.objects.get(pk=pk)
         except FeatureValue.DoesNotExist:
             return Response({"detail": "Feature value not found."}, status=status.HTTP_404_NOT_FOUND)
+
         serializer = FeatureValueSerializer(feature_value, data=request.data)
         if serializer.is_valid():
             serializer.save()
@@ -342,25 +262,22 @@ class FeatureValueAPIView(APIView):
             204: "Feature value deleted successfully",
             404: "Feature value not found",
         },
-        manual_parameters=[
-            openapi.Parameter(
-                "pk",
-                openapi.IN_PATH,
-                description="Primary key of the feature value to delete",
-                type=openapi.TYPE_INTEGER,
-                required=True,
-            ),
-        ],
     )
-    def delete(self, request, pk, *args, **kwargs):
+    def destroy(self, request, pk=None, *args, **kwargs):
         try:
             feature_value = FeatureValue.objects.get(pk=pk)
         except FeatureValue.DoesNotExist:
             return Response({"detail": "Feature value not found."}, status=status.HTTP_404_NOT_FOUND)
+
         feature_value.delete()
         return Response({"detail": "Feature value deleted."}, status=status.HTTP_204_NO_CONTENT)
 
-class ProductPerCategoryAPIView(APIView):
+
+class ProductPerCategoryViewSet(ViewSet):
+    """
+    A ViewSet for listing products by category.
+    """
+
     @swagger_auto_schema(
         operation_summary="Retrieve a list of products by category",
         operation_description="Fetch products belonging to a specific category.",
@@ -372,10 +289,7 @@ class ProductPerCategoryAPIView(APIView):
         responses={
             200: openapi.Response(
                 description="List of products for the specified category retrieved successfully",
-                schema=openapi.Schema(
-                    type=openapi.TYPE_ARRAY,
-                    items=openapi.Items(type=openapi.TYPE_OBJECT, schema=ProductSerializer),
-                ),
+                schema=ProductSerializer(many=True),
             ),
             404: openapi.Response(
                 description="Category not found",
@@ -383,8 +297,17 @@ class ProductPerCategoryAPIView(APIView):
             ),
         },
     )
-    def get(self, request, category_name, *args, **kwargs):
-        category = get_object_or_404(Category, name=category_name)
+    def list(self, request, category_name=None, *args, **kwargs):
+        try:
+            # Retrieve the category by its name
+            category = Category.objects.get(name=category_name)
+        except Category.DoesNotExist:
+            return Response({"detail": "Category not found."}, status=status.HTTP_404_NOT_FOUND)
+
+        # Filter products by category
         products = Product.objects.filter(category=category)
         serializer = ProductSerializer(products, many=True)
+
+        # Return the serialized products data
         return Response(serializer.data, status=status.HTTP_200_OK)
+

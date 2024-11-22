@@ -23,3 +23,14 @@ Content-Type: application/json
     "username": "mehrshad",
     "password": "aaaaaaaa"
 }
+
+###
+
+POST http://127.0.0.1:8000/categories/
+Content-Type: application/json
+
+{
+    "name": "Technology",
+    "description": "Category for technology-related topics.",
+    "parent": null
+}

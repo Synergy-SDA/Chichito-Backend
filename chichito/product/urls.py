@@ -3,6 +3,9 @@ from .views import *
 from rest_framework import permissions
 from drf_yasg.views import get_schema_view
 from drf_yasg import openapi
+from .views import ProductListView , ProductViewSet , FeatureViewSet , FeatureValueViewSet
+from rest_framework.routers import DefaultRouter
+
 
 
 schema_view = get_schema_view(
@@ -18,14 +21,14 @@ schema_view = get_schema_view(
     permission_classes=(permissions.AllowAny,),
 )
 
-urlpatterns = [
-    path('products/', ProductAPIView.as_view(), name='product-list-create'),  
-    path('products/<int:pk>/', ProductAPIView.as_view(), name='product-retrieve-update-delete'),
-    path('features/', FeatureAPIView.as_view(), name='feature-list-create'), 
-    path('features/<int:pk>/', FeatureAPIView.as_view(), name='feature-retrieve-update-delete'),  
-    path('feature-values/', FeatureValueAPIView.as_view(), name='feature-value-list-create'), 
-    path('feature-values/<int:pk>/', FeatureValueAPIView.as_view(), name='feature-value-retrieve-update-delete'),
-    path('products/<str:category_name>/', ProductPerCategoryAPIView.as_view(), name='products-per-category'),
-    re_path(r'^swagger(?P<format>\.json|\.yaml)$', schema_view.without_ui(cache_timeout=0), name='schema-json'),
-] 
 
+router = DefaultRouter()
+router.register(r'Product', ProductViewSet, basename='product')
+router.register(r'Feature', FeatureViewSet, basename='feature')
+router.register(r'FeatureValue', FeatureValueViewSet, basename='feature-value')
+router.register(r'ProductList', ProductListView, basename='product-list')
+
+urlpatterns = [
+]
+
+urlpatterns += router.urls

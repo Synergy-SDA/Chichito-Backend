@@ -3,7 +3,10 @@ from .views import *
 from rest_framework import permissions
 from drf_yasg.views import get_schema_view
 from drf_yasg import openapi
-from .views import CategoryAPIView
+# from .views import CategoryAPIView
+from .views import CategoryViewSet
+from rest_framework.routers import DefaultRouter
+
 
 schema_view = get_schema_view(
     openapi.Info(
@@ -19,8 +22,7 @@ schema_view = get_schema_view(
 )
 
 
+router = DefaultRouter()
+router.register(r'categories', CategoryViewSet , basename='category')
 
-urlpatterns = [
-    path('categories/', CategoryAPIView.as_view(), name='category-list-create'),  
-    path('categories/<int:pk>/', CategoryAPIView.as_view(), name='category-detail'), 
-]
+urlpatterns = router.urls
