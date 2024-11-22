@@ -1,5 +1,6 @@
 from rest_framework import serializers
 from .models import *
+from category.serializers import *
 
 
 class FeatureSerializer(serializers.ModelSerializer):

@@ -1,4 +1,6 @@
 from django.db import models
+from category.models import Category
+
 
 class Product(models.Model):
     name = models.CharField(max_length=255)
@@ -13,7 +15,7 @@ class Product(models.Model):
         related_name='products'
     )
     category = models.ForeignKey(
-        'Category',
+        'category.Category',
         related_name='products',
         on_delete=models.SET_NULL,
         null=True,
