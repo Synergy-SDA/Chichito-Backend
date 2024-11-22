@@ -28,7 +28,8 @@ router.register(r'Feature', FeatureViewSet, basename='feature')
 router.register(r'FeatureValue', FeatureValueViewSet, basename='feature-value')
 router.register(r'ProductList', ProductListView, basename='product-list')
 router.register(r'Filter', ProductFilter, basename='Filter')
-router.register(r'sortByMinPrice' , ProductSortViewSet , basename='sort-by-min-price')
+router.register(r'sortByMinPrice' , ProductSortMinViewSet , basename='sort-by-min-price')
+router.register(r'sortByMaxPrice' , ProductSortMaxViewSet , basename='sort-by-max-price')
 
 
 urlpatterns = [
