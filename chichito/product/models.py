@@ -29,25 +29,6 @@ class Product(models.Model):
         if self.count_exist == 0:
             self.is_available = False
         super(Product, self).save(*args, **kwargs)
-    def update_search_index(self):
-
-        from django.db import connection
-        cursor = connection.cursor()
-        cursor.execute("""
-            INSERT OR REPLACE INTO product_fts (rowid, name, description)
-            VALUES (?, ?, ?)
-        """, [self.id, self.name, self.description])
-        connection.commit()
-
-
-class ProductFTS(models.Model):
-    rowid = models.IntegerField(primary_key=True)
-    name = models.TextField()
-    description = models.TextField()
-
-    class Meta:
-        managed = False  
-        db_table = 'product_fts'
 class Feature(models.Model):
     name = models.CharField(max_length=255)
 

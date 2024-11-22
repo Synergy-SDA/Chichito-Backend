@@ -8,6 +8,8 @@ from drf_yasg.utils import swagger_auto_schema
 from drf_yasg import openapi
 from rest_framework.viewsets import ViewSet
 from rest_framework.decorators import action
+from rest_framework import status
+from django.db import connection
 
 
 class CustomPagination(PageNumberPagination):
@@ -313,15 +315,6 @@ class ProductPerCategoryViewSet(ViewSet):
         # Return the serialized products data
         return Response(serializer.data, status=status.HTTP_200_OK)
 
-
-
-from drf_yasg.utils import swagger_auto_schema
-from drf_yasg import openapi
-from rest_framework.decorators import action
-from rest_framework.viewsets import ViewSet
-from rest_framework.response import Response
-from rest_framework import status
-
 class ProductFilter(ViewSet):
     queryset = Product.objects.all()
     serializer_class = ProductSerializer
@@ -371,3 +364,6 @@ class ProductFilter(ViewSet):
 
         serializer = ProductSerializer(queryset, many=True)
         return Response(serializer.data, status=status.HTTP_200_OK)
+
+class ProductSearchViewSet(ViewSet):
+    pass 
