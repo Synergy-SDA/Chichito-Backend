@@ -402,7 +402,7 @@ class ProductSortViewSet(ViewSet):
         serializer = ProductSerializer(sorted_products, many=True)
         return Response(serializer.data, status=status.HTTP_200_OK)
 
-class ProductSortViewSet(ViewSet):
+class ProductSortByNameViewSet(ViewSet):
     queryset = Product.objects.all()
     serializer_class = ProductSerializer
 
