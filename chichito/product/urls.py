@@ -31,6 +31,7 @@ router.register(r'Filter', ProductFilter, basename='Filter')
 router.register(r'sortByMinPrice' , ProductSortMinViewSet , basename='sort-by-min-price')
 router.register(r'sortByMaxPrice' , ProductSortMaxViewSet , basename='sort-by-max-price')
 router.register(r'sortByName' , ProductSortByNameViewSet , basename='sort-by-name')
+router.register(r'search', ProductSearchViewSet, basename='product-search')
 
 
 

@@ -20,6 +20,7 @@ class CustomUserManager (BaseUserManager):
 
         return user
 
+
     
 class User(AbstractBaseUser):
 
