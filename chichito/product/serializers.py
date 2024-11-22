@@ -119,3 +119,4 @@ class ProductSerializer(serializers.ModelSerializer):
                 instance.features.add(feature_value)
 
         return instance
+
