@@ -379,11 +379,44 @@ class ProductSortViewSet(ViewSet):
     serializer_class = ProductSerializer
 
     @swagger_auto_schema(
-        operation_summary="Get products sorted by minimum price",
+        operation_summary="Get products sorted by price",
+        responses={200: ProductSerializer(many=True)},
+        manual_parameters=[
+            {
+                'name': 'order',
+                'in': 'query',
+                'type': 'string',
+                'description': 'Sort order: "asc" for minimum price, "desc" for maximum price',
+                'required': False,
+            }
+        ],
+    )
+    @action(detail=False, methods=['get'])
+    def sort_by_price(self, request):
+        order = request.query_params.get('order', 'asc')
+        if order == 'desc':
+            sorted_products = Product.objects.all().order_by('-price')  
+        else:
+            sorted_products = Product.objects.all().order_by('price')  
+
+        serializer = ProductSerializer(sorted_products, many=True)
+        return Response(serializer.data, status=status.HTTP_200_OK)
+
+class ProductSortViewSet(ViewSet):
+    queryset = Product.objects.all()
+    serializer_class = ProductSerializer
+
+    @swagger_auto_schema(
+        operation_summary="Sort products by name",
         responses={200: ProductSerializer(many=True)},
     )
     @action(detail=False, methods=['get'])
-    def sort_by_min_price(self, request):
-        sorted_products = Product.objects.all().order_by('price') 
+    def sort_by_name(self, request):
+        order = request.query_params.get('order', 'asc')
+        if order == 'desc':
+            sorted_products = Product.objects.all().order_by('-name')  
+        else:
+            sorted_products = Product.objects.all().order_by('name')  
+
         serializer = ProductSerializer(sorted_products, many=True)
         return Response(serializer.data, status=status.HTTP_200_OK)
