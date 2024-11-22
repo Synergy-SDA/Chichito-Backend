@@ -28,8 +28,8 @@ router.register(r'Feature', FeatureViewSet, basename='feature')
 router.register(r'FeatureValue', FeatureValueViewSet, basename='feature-value')
 router.register(r'ProductList', ProductListView, basename='product-list')
 router.register(r'Filter', ProductFilter, basename='Filter')
-router.register(r'sortByPrice' , ProductSortViewSet )
-router.register(r'sortByName' , ProductSortByNameViewSet )
+router.register(r'sortByPrice' , ProductSortViewSet ,basename='sort-by-price')
+router.register(r'sortByName' , ProductSortByNameViewSet , basename='sort-by-name')
 
 
 urlpatterns = [
