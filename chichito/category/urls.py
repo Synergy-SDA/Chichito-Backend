@@ -8,6 +8,7 @@ from .views import CategoryViewSet
 from rest_framework.routers import DefaultRouter
 
 
+
 schema_view = get_schema_view(
     openapi.Info(
         title="User API",
@@ -25,4 +26,8 @@ schema_view = get_schema_view(
 router = DefaultRouter()
 router.register(r'categories', CategoryViewSet , basename='category')
 
-urlpatterns = router.urls
+urlpatterns = [
+    
+]
+
+urlpatterns += router.urls
