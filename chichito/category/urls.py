@@ -22,13 +22,6 @@ schema_view = get_schema_view(
 )
 
 
-
-# urlpatterns = [
-#     path('categories/', CategoryAPIView.as_view(), name='category-list-create'),  
-#     path('categories/<int:pk>/', CategoryAPIView.as_view(), name='category-detail'), 
-# ]
-
-
 router = DefaultRouter()
 router.register(r'categories', CategoryViewSet , basename='category')
 
