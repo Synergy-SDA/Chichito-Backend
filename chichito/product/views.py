@@ -8,7 +8,12 @@ from drf_yasg.utils import swagger_auto_schema
 from drf_yasg import openapi
 from rest_framework.viewsets import ViewSet
 from rest_framework.decorators import action
-
+from drf_yasg.utils import swagger_auto_schema
+from drf_yasg import openapi
+from rest_framework.decorators import action
+from rest_framework.viewsets import ViewSet
+from rest_framework.response import Response
+from rest_framework import status
 
 class CustomPagination(PageNumberPagination):
     page_size = 10
@@ -315,12 +320,7 @@ class ProductPerCategoryViewSet(ViewSet):
 
 
 
-from drf_yasg.utils import swagger_auto_schema
-from drf_yasg import openapi
-from rest_framework.decorators import action
-from rest_framework.viewsets import ViewSet
-from rest_framework.response import Response
-from rest_framework import status
+
 
 class ProductFilter(ViewSet):
     queryset = Product.objects.all()
@@ -370,4 +370,20 @@ class ProductFilter(ViewSet):
                         queryset = queryset.filter(features=feature_value_obj)
 
         serializer = ProductSerializer(queryset, many=True)
+        return Response(serializer.data, status=status.HTTP_200_OK)
+
+
+
+class ProductSortViewSet(ViewSet):
+    queryset = Product.objects.all()
+    serializer_class = ProductSerializer
+
+    @swagger_auto_schema(
+        operation_summary="Get products sorted by minimum price",
+        responses={200: ProductSerializer(many=True)},
+    )
+    @action(detail=False, methods=['get'])
+    def sort_by_min_price(self, request):
+        sorted_products = Product.objects.all().order_by('price') 
+        serializer = ProductSerializer(sorted_products, many=True)
         return Response(serializer.data, status=status.HTTP_200_OK)
