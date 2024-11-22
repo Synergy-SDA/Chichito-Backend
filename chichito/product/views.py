@@ -2,7 +2,6 @@ from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework import status
 from django.shortcuts import get_object_or_404
-from rest_framework.permissions import IsAuthenticated, IsAdminUser
 from .models import Product
 from .serializers import *
 from rest_framework.pagination import PageNumberPagination
@@ -13,51 +12,49 @@ class CustomPagination(PageNumberPagination):
     page_size_query_param = 'page_size'
     max_page_size = 100
 
-# class ProductListView(APIView):
-#     def get(self, request, *args, **kwargs):
-#         queryset = Product.objects.all()
-#         paginator = CustomPagination()
-#         paginated_queryset = paginator.paginate_queryset(queryset, request)
-#         serializer = ProductSerializer(paginated_queryset, many=True)
-#         return paginator.get_paginated_response(serializer.data)
+class ProductListView(APIView):
+    def get(self, request, *args, **kwargs):
+        queryset = Product.objects.all()
+        paginator = CustomPagination()
+        paginated_queryset = paginator.paginate_queryset(queryset, request)
+        serializer = ProductSerializer(paginated_queryset, many=True)
+        return paginator.get_paginated_response(serializer.data)
+
+class ProductAPIView(APIView):
+    def post(self, request, *args, **kwargs):
+        serializer = ProductSerializer(data=request.data)
+        if serializer.is_valid():
+            product = serializer.save()
+            return Response(serializer.data, status=status.HTTP_201_CREATED)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 
-
-# class ProductAPIView(APIView):
-#     def post(self, request, *args, **kwargs):
-#         serializer = ProductSerializer(data=request.data)
-#         if serializer.is_valid():
-#             product = serializer.save()
-#             return Response(serializer.data, status=status.HTTP_201_CREATED)
-#         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+    def get(self, request, pk=None, *args, **kwargs):
+        product = get_object_or_404(Product, pk=pk)
+        serializer = ProductSerializer(product)
+        return Response(serializer.data, status=status.HTTP_200_OK)
 
 
-#     def get(self, request, pk=None, *args, **kwargs):
-#         product = get_object_or_404(Product, pk=pk)
-#         serializer = ProductSerializer(product)
-#         return Response(serializer.data, status=status.HTTP_200_OK)
+    def put(self, request, pk, *args, **kwargs):
+        product = get_object_or_404(Product, pk=pk)
+        serializer = ProductSerializer(product, data=request.data, partial=False)
+        if serializer.is_valid():
+            serializer.save()
+            return Response(serializer.data, status=status.HTTP_200_OK)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
+    def patch(self, request, pk, *args, **kwargs):
+        product = get_object_or_404(Product, pk=pk)
+        serializer = ProductSerializer(product, data=request.data, partial=True)
+        if serializer.is_valid():
+            serializer.save()
+            return Response(serializer.data, status=status.HTTP_200_OK)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
-#     def put(self, request, pk, *args, **kwargs):
-#         product = get_object_or_404(Product, pk=pk)
-#         serializer = ProductSerializer(product, data=request.data, partial=False)
-#         if serializer.is_valid():
-#             serializer.save()
-#             return Response(serializer.data, status=status.HTTP_200_OK)
-#         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
-
-#     def patch(self, request, pk, *args, **kwargs):
-#         product = get_object_or_404(Product, pk=pk)
-#         serializer = ProductSerializer(product, data=request.data, partial=True)
-#         if serializer.is_valid():
-#             serializer.save()
-#             return Response(serializer.data, status=status.HTTP_200_OK)
-#         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
-
-#     def delete(self, request, pk, *args, **kwargs):
-#         product = get_object_or_404(Product, pk=pk)
-#         product.delete()
-#         return Response({"message": "Product deleted successfully."}, status=status.HTTP_204_NO_CONTENT)
+    def delete(self, request, pk, *args, **kwargs):
+        product = get_object_or_404(Product, pk=pk)
+        product.delete()
+        return Response({"message": "Product deleted successfully."}, status=status.HTTP_204_NO_CONTENT)
 
 
 class FeatureAPIView(APIView):
@@ -106,8 +103,8 @@ class FeatureAPIView(APIView):
         feature.delete()
         return Response({"detail": "Feature deleted."}, status=status.HTTP_204_NO_CONTENT)
 
-
 class FeatureValueAPIView(APIView):
+
     def post(self, request, *args, **kwargs):
         serializer = FeatureValueSerializer(data=request.data)
         if serializer.is_valid():
@@ -154,3 +151,9 @@ class FeatureValueAPIView(APIView):
         
         feature_value.delete()
         return Response({"detail": "Feature value deleted."}, status=status.HTTP_204_NO_CONTENT)
+class ProductPerCategoryAPIView(APIView):
+    def get(self, request, category_name, *args, **kwargs):
+        category = get_object_or_404(Category, name=category_name)
+        products = Product.objects.filter(category=category)
+        serializer = ProductSerializer(products, many=True)
+        return Response(serializer.data, status=status.HTTP_200_OK)

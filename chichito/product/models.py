@@ -12,6 +12,13 @@ class Product(models.Model):
         'FeatureValue',
         related_name='products'
     )
+    category = models.ForeignKey(
+        'Category',
+        related_name='products',
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True
+    )
     
     def __str__(self):
         return self.name
@@ -20,7 +27,6 @@ class Product(models.Model):
         if self.count_exist == 0:
             self.is_available = False
         super(Product, self).save(*args, **kwargs)
-
 class Feature(models.Model):
     name = models.CharField(max_length=255)
 

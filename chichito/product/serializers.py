@@ -30,53 +30,95 @@ class FeatureValueSerializer(serializers.ModelSerializer):
     def create(self, validated_data):
         feature = validated_data.pop('feature')
         return FeatureValue.objects.create(feature=feature, **validated_data)
-    
+class ProductSerializer(serializers.ModelSerializer):
+    features = serializers.ListField(
+        child=serializers.DictField(),  
+        write_only=True
+    )
+    category = CategorySerializer()
 
-# class ProductSerializer(serializers.ModelSerializer):
-#     category = serializers.PrimaryKeyRelatedField(queryset=Category.objects.all()) 
-#     product_features = ProductFeatureSerializer(many=True)  # This will handle the list of features
+    class Meta:
+        model = Product
+        fields = [
+            'name',
+            'description',
+            'price',
+            'count_exist',
+            'is_available',
+            'created_at',
+            'updated_at',
+            'features',
+            'category',
+        ]
 
-#     class Meta:
-#         model = Product
-#         fields = ['name', 'description', 'price', 'count_exist', 'is_available', 'category', 'product_features']
+    def create(self, validated_data):
+        # Extract nested data
+        features_data = validated_data.pop('features', [])
+        category_data = validated_data.pop('category', None)
 
-#     def validate_price(self, value):
-#         if value < 0:
-#             raise serializers.ValidationError("قیمت منفی نمی‌تواند باشد.")
-#         return value
+        # Handle category creation or association
+        category = None
+        if category_data:
+            category, _ = Category.objects.get_or_create(**category_data)
 
-#     def validate_count_exist(self, value):
-#         if value < 0:
-#             raise serializers.ValidationError("تعداد موجودی منفی نمی‌تواند باشد.")
-#         return value
+        # Create the product
+        product = Product.objects.create(category=category, **validated_data)
 
-#     def create(self, validated_data):
-#         # Remove category and product_features from the validated data to handle them separately
-#         category_data = validated_data.pop('category')
-#         product_features_data = validated_data.pop('product_features')
+        # Handle feature values
+        for feature_data in features_data:
+            feature_name = feature_data.get('feature')
+            value = feature_data.get('value')
 
-#         # Create the product first
-#         product = Product.objects.create(**validated_data)
+            # Find or create FeatureValue
+            try:
+                feature_value = FeatureValue.objects.get(
+                    feature__name__iexact=feature_name,
+                    value__iexact=value
+                )
+            except FeatureValue.DoesNotExist:
+                # Create feature if it doesn't exist
+                feature, _ = Feature.objects.get_or_create(name=feature_name)
+                feature_value = FeatureValue.objects.create(feature=feature, value=value)
 
-#         # Attach the category to the product after creation
-#         product.category = Category.objects.get(id=category_data)
-#         product.save()
-#         print(product)
+            # Add feature value to the product
+            product.features.add(feature_value)
 
-#         # Now that the product is created, handle the product_features
-#         for feature_data in product_features_data:
-#             feature_value_data = feature_data.pop('feature_value')  # Get the feature_value data
-            
-#             # Get or create the feature_value based on feature name and value
-#             feature = feature_value_data['feature']
-#             value = feature_value_data['value']
-#             feature_value, created = FeatureValue.objects.get_or_create(feature=feature, value=value)
+        return product
 
-#             # Create ProductFeature relation between the product and feature_value
-#             ProductFeature.objects.create(
-#                 product=product,  # Now the product is available
-#                 feature_value=feature_value
-#             )
+    def update(self, instance, validated_data):
+        features_data = validated_data.pop('features', [])
+        category_data = validated_data.pop('category', None)
 
-#         return product
+        # Update basic fields
+        for attr, value in validated_data.items():
+            setattr(instance, attr, value)
 
+        # Update category
+        if category_data:
+            category, _ = Category.objects.get_or_create(**category_data)
+            instance.category = category
+
+        instance.save()
+
+        # Update feature values
+        if features_data:
+            instance.features.clear()  # Remove existing features
+            for feature_data in features_data:
+                feature_name = feature_data.get('feature')
+                value = feature_data.get('value')
+
+                # Find or create FeatureValue
+                try:
+                    feature_value = FeatureValue.objects.get(
+                        feature__name__iexact=feature_name,
+                        value__iexact=value
+                    )
+                except FeatureValue.DoesNotExist:
+                    # Create feature if it doesn't exist
+                    feature, _ = Feature.objects.get_or_create(name=feature_name)
+                    feature_value = FeatureValue.objects.create(feature=feature, value=value)
+
+                # Add feature value to the product
+                instance.features.add(feature_value)
+
+        return instance
