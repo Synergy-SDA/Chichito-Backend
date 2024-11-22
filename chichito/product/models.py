@@ -21,6 +21,10 @@ class Product(models.Model):
         null=True,
         blank=True
     )
+    class Meta:
+        indexes = [
+            models.Index(fields=['name', 'description']),  
+        ]
     
     def __str__(self):
         return self.name
