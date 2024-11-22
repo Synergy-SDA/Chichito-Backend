@@ -8,7 +8,14 @@ from drf_yasg.utils import swagger_auto_schema
 from drf_yasg import openapi
 from rest_framework.viewsets import ViewSet
 from rest_framework.decorators import action
-
+from drf_yasg.utils import swagger_auto_schema
+from drf_yasg import openapi
+from rest_framework.decorators import action
+from rest_framework.viewsets import ViewSet
+from rest_framework.response import Response
+from rest_framework import status
+from django.db.models.functions import Lower
+from drf_yasg import openapi  
 
 class CustomPagination(PageNumberPagination):
     page_size = 10
@@ -315,12 +322,7 @@ class ProductPerCategoryViewSet(ViewSet):
 
 
 
-from drf_yasg.utils import swagger_auto_schema
-from drf_yasg import openapi
-from rest_framework.decorators import action
-from rest_framework.viewsets import ViewSet
-from rest_framework.response import Response
-from rest_framework import status
+
 
 class ProductFilter(ViewSet):
     queryset = Product.objects.all()
@@ -370,4 +372,73 @@ class ProductFilter(ViewSet):
                         queryset = queryset.filter(features=feature_value_obj)
 
         serializer = ProductSerializer(queryset, many=True)
+        return Response(serializer.data, status=status.HTTP_200_OK)
+
+
+
+class ProductSortMinViewSet(ViewSet):
+    queryset = Product.objects.all()
+    serializer_class = ProductSerializer
+
+    @swagger_auto_schema(
+        operation_summary="Get products sorted by minimum price",
+        responses={200: ProductSerializer(many=True)},
+    )
+    @action(detail=False, methods=['get'])
+    def sort_by_min_price(self, request):
+        sorted_products = Product.objects.all().order_by('price') 
+        serializer = ProductSerializer(sorted_products, many=True)
+        return Response(serializer.data, status=status.HTTP_200_OK)
+    
+class ProductSortMaxViewSet(ViewSet):
+    queryset = Product.objects.all()
+    serializer_class = ProductSerializer
+
+    @swagger_auto_schema(
+        operation_summary="Get products sorted by minimum price",
+        responses={200: ProductSerializer(many=True)},
+    )
+    @action(detail=False, methods=['get'])
+    def sort_by_min_price(self, request):
+        sorted_products = Product.objects.all().order_by('-price') 
+        serializer = ProductSerializer(sorted_products, many=True)
+        return Response(serializer.data, status=status.HTTP_200_OK)
+
+
+
+
+class ProductSortByNameViewSet(ViewSet):
+    queryset = Product.objects.all()
+    serializer_class = ProductSerializer
+
+    @swagger_auto_schema(
+        operation_summary="Get products sorted by name",
+        responses={200: ProductSerializer(many=True)},
+        manual_parameters=[
+            openapi.Parameter(
+                'order',  # The name of the query parameter
+                openapi.IN_QUERY,  # The location of the parameter (query)
+                description='Sort order: "asc" for ascending or "desc" for descending order (default: asc)',
+                type=openapi.TYPE_STRING,  # The type of the parameter
+                required=False,  # The parameter is optional
+            ),
+        ],
+    )
+    @action(detail=False, methods=['get'])
+    def sort_by_name(self, request):
+        """
+        API to sort products by name.
+        Use ?order=asc/desc for ascending or descending order.
+        """
+        order = request.query_params.get('order', 'asc').lower()
+
+        # Validate `order` parameter
+        is_desc = order == 'desc'
+
+        # Case-insensitive sorting by name
+        sorted_products = Product.objects.all().order_by(
+            Lower('name').desc() if is_desc else Lower('name')
+        )
+
+        serializer = ProductSerializer(sorted_products, many=True)
         return Response(serializer.data, status=status.HTTP_200_OK)
