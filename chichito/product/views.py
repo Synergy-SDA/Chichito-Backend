@@ -9,8 +9,8 @@ from drf_yasg import openapi
 from rest_framework.viewsets import ViewSet
 from rest_framework.decorators import action
 from rest_framework import status
-from django.db import connection
-
+from rest_framework.viewsets import ReadOnlyModelViewSet
+from rest_framework.filters import SearchFilter
 
 class CustomPagination(PageNumberPagination):
     page_size = 10
@@ -366,4 +366,30 @@ class ProductFilter(ViewSet):
         return Response(serializer.data, status=status.HTTP_200_OK)
 
 class ProductSearchViewSet(ViewSet):
-    pass 
+
+    @swagger_auto_schema(
+        operation_description="Search products by name.",
+        manual_parameters=[
+            openapi.Parameter(
+                'query', openapi.IN_QUERY, 
+                description="Search term for product name",
+                type=openapi.TYPE_STRING,
+                required=True
+            )
+        ],
+        responses={
+            200: openapi.Response('Search results', ProductSerializer(many=True)),
+            400: 'Bad request - query parameter missing',
+        }
+    )
+    @action(detail=False, methods=["get"], url_path="search")
+    def search(self, request):
+        query = request.query_params.get("query", None)
+
+        if not query:
+            return Response({"error": "Query parameter is required"}, status=status.HTTP_400_BAD_REQUEST)
+
+       
+        products = Product.objects.filter(name__icontains=query)
+        serializer = ProductSerializer(products, many=True)
+        return Response(serializer.data)
