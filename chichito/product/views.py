@@ -7,6 +7,8 @@ from rest_framework.pagination import PageNumberPagination
 from drf_yasg.utils import swagger_auto_schema
 from drf_yasg import openapi
 from rest_framework.viewsets import ViewSet
+from rest_framework.decorators import action
+
 
 class CustomPagination(PageNumberPagination):
     page_size = 10
@@ -311,3 +313,61 @@ class ProductPerCategoryViewSet(ViewSet):
         # Return the serialized products data
         return Response(serializer.data, status=status.HTTP_200_OK)
 
+
+
+from drf_yasg.utils import swagger_auto_schema
+from drf_yasg import openapi
+from rest_framework.decorators import action
+from rest_framework.viewsets import ViewSet
+from rest_framework.response import Response
+from rest_framework import status
+
+class ProductFilter(ViewSet):
+    queryset = Product.objects.all()
+    serializer_class = ProductSerializer
+
+    @swagger_auto_schema(
+        operation_summary="Filter products by category and features",
+        request_body=openapi.Schema(
+            type=openapi.TYPE_OBJECT,
+            properties={
+                'category': openapi.Schema(type=openapi.TYPE_INTEGER, description="Category ID"),
+                'features': openapi.Schema(
+                    type=openapi.TYPE_ARRAY,
+                    items=openapi.Schema(
+                        type=openapi.TYPE_OBJECT,
+                        properties={
+                            'name': openapi.Schema(type=openapi.TYPE_STRING, description="Feature name"),
+                            'value': openapi.Schema(type=openapi.TYPE_STRING, description="Feature value"),
+                        },
+                    ),
+                    description="List of features to filter by (e.g., [{'name': 'color', 'value': 'red'}])"
+                ),
+            },
+            required=[],
+        ),
+        responses={200: ProductSerializer(many=True)},
+    )
+    @action(detail=False, methods=['post'])
+    def filter_products(self, request):
+        category_id = request.data.get('category', None)
+        features = request.data.get('features', [])
+
+        queryset = Product.objects.all()
+
+        if category_id:
+            queryset = queryset.filter(category__id=category_id)
+
+        if features:
+            for feature in features:
+                feature_name = feature.get('name')
+                feature_value = feature.get('value')
+                if feature_name and feature_value:
+                    feature_value_obj = FeatureValue.objects.filter(
+                        feature__name=feature_name, value=feature_value
+                    ).first()
+                    if feature_value_obj:
+                        queryset = queryset.filter(features=feature_value_obj)
+
+        serializer = ProductSerializer(queryset, many=True)
+        return Response(serializer.data, status=status.HTTP_200_OK)

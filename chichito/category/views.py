@@ -68,3 +68,6 @@ class CategoryViewSet(ViewSet):
 
         category.delete()
         return Response({"detail": "Category deleted."}, status=status.HTTP_204_NO_CONTENT)
+
+
+
