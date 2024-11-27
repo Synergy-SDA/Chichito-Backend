@@ -3,7 +3,7 @@ from django.contrib.auth.models import AbstractBaseUser, BaseUserManager
 from django.db import models
 from django.utils import timezone
 from django.core.validators import MinLengthValidator
-
+from django.utils.timezone import now, timedelta
 from django.utils.translation import gettext_lazy as _
 
 class CustomUserManager (BaseUserManager):
@@ -19,6 +19,12 @@ class CustomUserManager (BaseUserManager):
         user.save(using=self._db)
 
         return user
+    def create_superuser(self, mail, password=None, **extra_fields):
+        extra_fields.setdefault('is_staff', True)
+        extra_fields.setdefault('is_superuser', True)
+        extra_fields.setdefault('is_active', True)
+        return self.create_user(mail, password, **extra_fields)
+
 
 
     
@@ -33,7 +39,7 @@ class User(AbstractBaseUser):
                                 validators=[MinLengthValidator(5)])
     first_name = models.CharField(max_length=255)
     last_name = models.CharField(max_length=255)
-    phone_number = models.CharField(unique=True, max_length=255)
+    phone_number = models.CharField(unique=True, max_length=255,blank=True,null=True)
     mail = models.EmailField(unique=True, max_length=255)
     birth_date = models.DateField(null=True, blank=True)
     address = models.CharField(max_length=255, blank=True)
@@ -43,15 +49,16 @@ class User(AbstractBaseUser):
     is_active = models.BooleanField(default=True)
     is_staff = models.BooleanField(default=False)
     is_superuser = models.BooleanField(default=False)
+    is_verified = models.BooleanField(default=False)
 
     USERNAME_FIELD = 'username' 
-    REQUIRED_FIELDS = ['first_name', 'last_name']  
+    REQUIRED_FIELDS = ['mail','first_name', 'last_name']  
 
    
     objects = CustomUserManager()
 
     def __str__(self):
-        return f"{self.first_name} {self.last_name} ({self.email})"
+        return f"{self.first_name} {self.last_name} ({self.mail})"
 
     def get_full_name(self):
         return f"{self.first_name} {self.last_name}"
@@ -69,6 +76,25 @@ class User(AbstractBaseUser):
         if not self.id:  
             self.last_login = timezone.now()
         super().save(*args, **kwargs)   
+    def has_perm(self, perm, obj=None):
+       return self.is_superuser
+
+    def has_module_perms(self, app_label):
+       return self.is_superuser
 
 
 
+
+def get_otp_expiry_time():
+    return now() + timedelta(minutes=10)
+
+class OTP(models.Model):
+    user = models.OneToOneField(User, on_delete=models.CASCADE, related_name="otp_record")
+    otp = models.CharField(max_length=6)
+    expires_at = models.DateTimeField(default=get_otp_expiry_time)  
+
+    def is_expired(self):
+        return now() > self.expires_at
+
+    def __str__(self):
+        return f"OTP for {self.user.username}"
