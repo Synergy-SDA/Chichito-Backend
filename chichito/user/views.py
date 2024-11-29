@@ -8,7 +8,7 @@ from django.contrib.auth import authenticate
 from .serializers import UserSignupSerializer, UserLoginSerializer
 from .utils import OTPService
 from .models import User,OTP
-
+from django.contrib.auth.hashers import make_password
 # class UserSignupView(APIView):
 #     @swagger_auto_schema(
 #         operation_summary="User Signup",
@@ -91,21 +91,21 @@ class UserSignupView(APIView):
     def post(self, request):
         serializer = UserSignupSerializer(data=request.data)
         if serializer.is_valid():
-            # Save the user to the database
+        
             user = serializer.save()
 
-            # Generate and send OTP for email verification
+            
             try:
-                OTPService.generate_otp(user)
+                OTPService.generate_otp(user,purpose="email_verification")
             except Exception as e:
-                # If OTP generation fails, delete the user to maintain consistency
+            
                 user.delete()
                 return Response(
                     {"error": "Failed to send OTP. Please try again later."},
                     status=status.HTTP_500_INTERNAL_SERVER_ERROR
                 )
 
-            # Generate JWT tokens
+            
             refresh = RefreshToken.for_user(user)
             
             return Response({
@@ -150,7 +150,72 @@ class UserLoginView(APIView):
                 "access": str(refresh.access_token)
             }, status=status.HTTP_200_OK)
         return Response({"detail": "Invalid credentials"}, status=status.HTTP_401_UNAUTHORIZED)
-class VerifyOTPView(APIView):
+class ForgotPasswordView(APIView):
+    def post(self, request):
+        email = request.data.get('email')
+        try:
+            user = User.objects.get(mail=email)
+        except User.DoesNotExist:
+            return Response({"error": "User with this email does not exist."}, status=status.HTTP_400_BAD_REQUEST)
+
+        
+        OTPService.generate_otp(user, purpose="password_reset")
+
+        return Response({"message": "OTP sent successfully to your email."}, status=status.HTTP_200_OK)
+
+
+
+class VarifyForgotPasswordOTPView(APIView):
+    @swagger_auto_schema(
+        operation_summary="Reset Password",
+        operation_description="Verify the OTP and reset the user's password.",
+        request_body=openapi.Schema(
+            type=openapi.TYPE_OBJECT,
+            properties={
+                'email': openapi.Schema(type=openapi.TYPE_STRING, format=openapi.FORMAT_EMAIL),
+                'otp': openapi.Schema(type=openapi.TYPE_STRING, maxLength=6),
+                'new_password': openapi.Schema(type=openapi.TYPE_STRING, format=openapi.FORMAT_PASSWORD)
+            },
+            required=['email', 'otp', 'new_password']
+        ),
+        responses={
+            200: openapi.Response(
+                description="Password reset successful.",
+                examples={"application/json": {"message": "Password reset successful."}}
+            ),
+            400: openapi.Response(
+                description="Invalid OTP or data.",
+                examples={"application/json": {"error": "Invalid OTP or OTP has expired."}}
+            )
+        }
+    )
+    def post(self, request):
+        # Extract data from the request
+        email = request.data.get('email')
+        otp = request.data.get('otp')
+        new_password = request.data.get('new_password')
+
+        # Check if the user exists
+        try:
+            user = User.objects.get(mail=email)
+        except User.DoesNotExist:
+            return Response({"error": "User with this email does not exist."}, status=status.HTTP_400_BAD_REQUEST)
+
+        # Verify OTP
+        otp_record = getattr(user, 'otp_record', None)  # Safely get the related OTP record
+        if not otp_record or otp_record.otp != otp or otp_record.is_expired():
+            return Response({"error": "Invalid OTP or OTP has expired."}, status=status.HTTP_400_BAD_REQUEST)
+
+        # Reset the password
+        user.password = make_password(new_password)
+        user.save()
+
+        # Delete OTP record after successful password reset
+        otp_record.delete()
+
+        return Response({"message": "Password reset successful."}, status=status.HTTP_200_OK)
+
+class VerifyEmailOTPView(APIView):
     @swagger_auto_schema(
         operation_summary="Verify OTP",
         operation_description="Verify the OTP sent to the user's email.",
