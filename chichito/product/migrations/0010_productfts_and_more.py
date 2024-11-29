@@ -22,8 +22,5 @@ class Migration(migrations.Migration):
                 'managed': False,
             },
         ),
-        migrations.RemoveIndex(
-            model_name='product',
-            name='product_pro_name_df6d05_idx',
-        ),
+
     ]
