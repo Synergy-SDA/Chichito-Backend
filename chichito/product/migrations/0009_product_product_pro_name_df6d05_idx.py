@@ -10,9 +10,3 @@ class Migration(migrations.Migration):
         ('product', '0008_alter_product_category_delete_category'),
     ]
 
-    operations = [
-        migrations.AddIndex(
-            model_name='product',
-            index=models.Index(fields=['name', 'description'], name='product_pro_name_df6d05_idx'),
-        ),
-    ]
