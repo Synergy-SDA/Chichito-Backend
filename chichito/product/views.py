@@ -19,6 +19,8 @@ from drf_yasg import openapi
 from rest_framework import status
 from rest_framework.viewsets import ReadOnlyModelViewSet
 from rest_framework.filters import SearchFilter 
+from rest_framework.views import APIView
+
 
 class CustomPagination(PageNumberPagination):
     page_size = 10
@@ -307,3 +309,18 @@ class ProductSearchViewSet(ViewSet):
         products = Product.objects.filter(name__icontains=query)
         serializer = ProductSerializer(products, many=True)
         return Response(serializer.data)
+    
+
+
+class CommentCreate(APIView):
+    serializer_class = CommentCreateSerializer
+      
+    def post(self, request):
+        serializer = self.serializer_class(data=request.data)
+        if serializer.is_valid(raise_exception=True):
+            serializer.save()
+            return Response({
+                'message': 'comment created succesfuly', 
+            }, status=status.HTTP_201_CREATED)
+        
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
