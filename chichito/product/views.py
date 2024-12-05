@@ -20,6 +20,8 @@ from rest_framework import status
 from rest_framework.viewsets import ReadOnlyModelViewSet
 from rest_framework.filters import SearchFilter 
 from rest_framework.views import APIView
+from rest_framework.parsers import MultiPartParser, FormParser, JSONParser
+
 
 
 class CustomPagination(PageNumberPagination):
@@ -325,20 +327,26 @@ class CommentCreateAPI(APIView):
         
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
     
-class UserRetriveView(APIView):
-    serializer_class= UserRetriveSerializer
+
+class CommentRetriveView(APIView):
+    serializer_class = CommentDetailSerializer
     
-    def get(self, request, *args, **kwargs):
-        if (not request.user.is_authenticated):
-            return Response("user not authenticated", status=status.HTTP_401_UNAUTHORIZED)
-        username = request.user.username
-        user = User.objects.get(username=username)
-        serializer = self.serializer_class(user)
+    def get(self, request, product_id, *args, **kwargs):
+        if not request.user.is_authenticated:
+            return Response({"detail": "User not authenticated"}, status=status.HTTP_401_UNAUTHORIZED)
+
+        try:
+            product = Product.objects.get(id=product_id)
+        except Product.DoesNotExist:
+            return Response({"detail": "Product not found."}, status=status.HTTP_404_NOT_FOUND)
+
+        comments = Comment.objects.filter(product=product)
+        if not comments.exists():
+            return Response({"detail": "No comments found for this product."}, status=status.HTTP_404_NOT_FOUND)
+        
+        serializer = self.serializer_class(comments, many=True)
         return Response(serializer.data, status=status.HTTP_200_OK)
     
-
-class UserDeleteView(APIView):
-    serializer_class= UserDeleteSerializer
     
     def delete(self, request, *args, **kwargs):
         if (not request.user.is_authenticated):
@@ -356,10 +364,6 @@ class UserDeleteView(APIView):
         user.delete()
         return Response("user deleted successfully", status=status.HTTP_200_OK)
 
-        
-
-class UserUpdateView(APIView):
-    serializer_class= UserUpdateSerializer
     parser_classes = [MultiPartParser, FormParser, JSONParser]
     
     def patch(self, request, *args, **kwargs):

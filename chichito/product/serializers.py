@@ -144,3 +144,14 @@ class CommentCreateSerializer(serializers.ModelSerializer):
 
     def create(self, validated_data):
         return Comment.objects.create(**validated_data)
+    
+    
+
+class CommentDetailSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Comment
+        fields = ['user',  'product',  'content' , 'rate']
+        
+
+
+    
