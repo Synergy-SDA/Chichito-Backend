@@ -18,8 +18,8 @@ router.register(r'sortByName' , ProductSortByNameViewSet , basename='sort-by-nam
 router.register(r'search', ProductSearchViewSet, basename='product-search')
 
 urlpatterns = [
-    path('CommentCreate/' , CommentCreateAPI.as_view()),
-    path('comments/<int:product_id>/', CommentRetriveView.as_view()),
+    path('comments/' , CommentCreateAPI.as_view(), name='comment'),
+    path('comments/<int:product_id>/', CommentRetriveView.as_view() , name='comment-id'),
 ]
 
 urlpatterns += router.urls
