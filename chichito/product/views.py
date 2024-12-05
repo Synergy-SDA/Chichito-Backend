@@ -312,7 +312,7 @@ class ProductSearchViewSet(ViewSet):
     
 
 
-class CommentCreate(APIView):
+class CommentCreateAPI(APIView):
     serializer_class = CommentCreateSerializer
       
     def post(self, request):

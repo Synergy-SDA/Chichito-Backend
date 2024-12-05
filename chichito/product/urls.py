@@ -1,7 +1,6 @@
 from django.urls import path,re_path
 from .views import *
 from rest_framework import permissions
-from .views import ProductListView , ProductViewSet , FeatureViewSet , FeatureValueViewSet , ProductFilter
 from rest_framework.routers import DefaultRouter
 
 
@@ -18,9 +17,8 @@ router.register(r'sortByMaxPrice' , ProductSortMaxViewSet , basename='sort-by-ma
 router.register(r'sortByName' , ProductSortByNameViewSet , basename='sort-by-name')
 router.register(r'search', ProductSearchViewSet, basename='product-search')
 
-
-
 urlpatterns = [
+    path('CommentCreate/' , CommentCreateAPI.as_view())
 ]
 
 urlpatterns += router.urls
