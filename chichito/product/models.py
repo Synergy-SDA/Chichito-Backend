@@ -1,6 +1,6 @@
 from django.db import models
 from category.models import Category
-
+from user.models import *
 
 class Product(models.Model):
     name = models.CharField(max_length=255)
@@ -44,3 +44,20 @@ class FeatureValue(models.Model):
 
 
 
+class Comment(models.Model):
+    user_email = models.ForeignKey(User , related_name='email' , on_delete=models.CASCADE)
+    product_id = models.ForeignKey(Product , related_name='id' , on_delete=models.CASCADE)
+    content =  models.CharField(max_length=255)     
+    class RatingChoices(models.IntegerChoices):
+        ONE = 1, 'One Star'
+        TWO = 2, 'Two Stars'
+        THREE = 3, 'Three Stars'
+        FOUR = 4, 'Four Stars'
+        FIVE = 5, 'Five Stars'
+    
+    rate = models.IntegerField(choices=RatingChoices.choices)
+    
+        
+    def __str__(self):
+        return self.content
+    
