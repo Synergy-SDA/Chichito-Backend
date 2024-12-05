@@ -124,27 +124,23 @@ class ProductSerializer(serializers.ModelSerializer):
 
 
 class CommentCreateSerializer(serializers.ModelSerializer):
-    rate = serializers.IntegerField(choices=Comment.RatingChoices.choices)
+    rate = serializers.ChoiceField(choices=Comment.RatingChoices.choices)
 
     class Meta:
-        model = Comment    
-        fields = ['user_email' , 'product_id' , 'content' , 'rate']
-        
+        model = Comment
+        fields = ['user', 'product', 'content', 'rate']
+
     def validate(self, attrs):
-                
-        email = attrs.get('user_email')
-        product_id = attrs.get('product_id')
-        user_email = User.objects.filter(email=email).first()
-        productID = Product.objects.filter(id=product_id) 
-        if not user_email:
-            raise serializers.ValidationError('email does not exists')
-   
-        if not productID:
-           raise serializers.ValidationError('Product does not exists')
+        user = attrs.get('user')
+        product = attrs.get('product')
+
+        if not User.objects.filter(id=user.id).exists():
+            raise serializers.ValidationError({'user': 'User does not exist.'})
+
+        if not Product.objects.filter(id=product.id).exists():
+            raise serializers.ValidationError({'product': 'Product does not exist.'})
 
         return attrs
 
     def create(self, validated_data):
-        comment = Comment.objects.create(**validated_data)
-        return comment
-    
+        return Comment.objects.create(**validated_data)

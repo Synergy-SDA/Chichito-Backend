@@ -45,9 +45,14 @@ class FeatureValue(models.Model):
 
 
 class Comment(models.Model):
-    user_email = models.ForeignKey(User , related_name='email' , on_delete=models.CASCADE)
-    product_id = models.ForeignKey(Product , related_name='id' , on_delete=models.CASCADE)
-    content =  models.CharField(max_length=255)     
+    user = models.ForeignKey(
+        User, related_name='comments', on_delete=models.CASCADE
+    )  # Changed to 'user' for clarity
+    product = models.ForeignKey(
+        Product, related_name='comments', on_delete=models.CASCADE
+    )  # Changed related_name
+    content = models.CharField(max_length=255)
+    
     class RatingChoices(models.IntegerChoices):
         ONE = 1, 'One Star'
         TWO = 2, 'Two Stars'
@@ -56,8 +61,6 @@ class Comment(models.Model):
         FIVE = 5, 'Five Stars'
     
     rate = models.IntegerField(choices=RatingChoices.choices)
-    
-        
+
     def __str__(self):
-        return self.content
-    
+        return f"{self.user.email} - {self.content[:20]}"  # Improved representation
