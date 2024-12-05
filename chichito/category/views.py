@@ -2,23 +2,27 @@ from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework import status
 from .models import Category
-from .serializers import CategorySerializer
+from .serializers import *
+
 
 class CategoryListCreateAPIView(APIView):
+    serializer_class = CategoryCreateSerializer
+
     def get(self, request):
         categories = Category.objects.all()
-        serializer = CategorySerializer(categories, many=True)
+        serializer = self.serializer_class(categories, many=True)  # Serialize the queryset
         return Response(serializer.data)
 
     def post(self, request):
-        serializer = CategorySerializer(data=request.data)
+        serializer = self.serializer_class(data=request.data)  # Use `serializer_class` for consistency
         if serializer.is_valid():
             serializer.save()
             return Response(serializer.data, status=status.HTTP_201_CREATED)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
-
 class CategoryDetailAPIView(APIView):
+    serializer_class = CategoryDetailSerializer
+
     def get_object(self, pk):
         try:
             return Category.objects.get(pk=pk)
@@ -30,7 +34,7 @@ class CategoryDetailAPIView(APIView):
         if not category:
             return Response({"detail": "Category not found."}, status=status.HTTP_404_NOT_FOUND)
 
-        serializer = CategorySerializer(category)
+        serializer = self.serializer_class(category)
         return Response(serializer.data)
 
     def put(self, request, pk):
@@ -38,7 +42,7 @@ class CategoryDetailAPIView(APIView):
         if not category:
             return Response({"detail": "Category not found."}, status=status.HTTP_404_NOT_FOUND)
 
-        serializer = CategorySerializer(category, data=request.data)
+        serializer = self.serializer_class(category, data=request.data)
         if serializer.is_valid():
             serializer.save()
             return Response(serializer.data)

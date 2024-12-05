@@ -37,7 +37,7 @@ class ProductSerializer(serializers.ModelSerializer):
         child=serializers.DictField(),  # Accept a list of dictionaries
         write_only=True
     )
-    category = CategorySerializer()
+    category = CategoryDetailSerializer()
 
     class Meta:
         model = Product
