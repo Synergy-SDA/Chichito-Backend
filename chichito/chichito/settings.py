@@ -48,6 +48,10 @@ INSTALLED_APPS = [
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
+    
+    'drf_spectacular',
+    'rest_framework_simplejwt.token_blacklist',
+    
     'user',
     'category',
     'rest_framework',
@@ -163,3 +167,11 @@ CORS_ALLOW_ALL_ORIGINS = True
 
 # settings.py
 # DEBUG = True
+
+
+EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
+EMAIL_HOST="smtp.gmail.com"
+EMAIL_PORT=587
+EMAIL_HOST_USER="noreply.chichito.ir@gmail.com"
+EMAIL_HOST_PASSWORD="hwgc fqfv yybl clbh"
+EMAIL_USE_TLS=True
