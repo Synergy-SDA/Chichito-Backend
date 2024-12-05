@@ -37,11 +37,13 @@ class ProductSerializer(serializers.ModelSerializer):
         child=serializers.DictField(),  # Accept a list of dictionaries
         write_only=True
     )
+    product_features = serializers.SerializerMethodField(read_only=True)
     category = CategorySerializer()
 
     class Meta:
         model = Product
         fields = [
+            'id',
             'name',
             'description',
             'price',
@@ -49,8 +51,17 @@ class ProductSerializer(serializers.ModelSerializer):
             'is_available',
             'created_at',
             'updated_at',
-            'features',
+            'features',# write-only field for create/update
             'category',
+            'product_features',
+        ]
+    def get_product_features(self, obj):
+        return [
+            {
+                'feature': feature_value.feature.name, 
+                'value': feature_value.value
+            } 
+            for feature_value in obj.features.all()
         ]
 
     def create(self, validated_data):
