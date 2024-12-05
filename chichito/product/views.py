@@ -19,6 +19,10 @@ from drf_yasg import openapi
 from rest_framework import status
 from rest_framework.viewsets import ReadOnlyModelViewSet
 from rest_framework.filters import SearchFilter 
+from rest_framework.views import APIView
+from rest_framework.parsers import MultiPartParser, FormParser, JSONParser
+
+
 
 class CustomPagination(PageNumberPagination):
     page_size = 10
@@ -307,3 +311,72 @@ class ProductSearchViewSet(ViewSet):
         products = Product.objects.filter(name__icontains=query)
         serializer = ProductSerializer(products, many=True)
         return Response(serializer.data)
+    
+
+
+class CommentCreateAPI(APIView):
+    serializer_class = CommentCreateSerializer
+      
+    def post(self, request):
+        serializer = self.serializer_class(data=request.data)
+        if serializer.is_valid(raise_exception=True):
+            serializer.save()
+            return Response({
+                'message': 'comment created succesfuly', 
+            }, status=status.HTTP_201_CREATED)
+        
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+    
+
+class CommentRetriveView(APIView):
+    serializer_class = CommentDetailSerializer
+    
+    def get(self, request, product_id, *args, **kwargs):
+        if not request.user.is_authenticated:
+            return Response({"detail": "User not authenticated"}, status=status.HTTP_401_UNAUTHORIZED)
+
+        try:
+            product = Product.objects.get(id=product_id)
+        except Product.DoesNotExist:
+            return Response({"detail": "Product not found."}, status=status.HTTP_404_NOT_FOUND)
+
+        comments = Comment.objects.filter(product=product)
+        if not comments.exists():
+            return Response({"detail": "No comments found for this product."}, status=status.HTTP_404_NOT_FOUND)
+        
+        serializer = self.serializer_class(comments, many=True)
+        return Response(serializer.data, status=status.HTTP_200_OK)
+    
+    
+    def delete(self, request, *args, **kwargs):
+        if (not request.user.is_authenticated):
+            return Response("user not authenticated", status=status.HTTP_401_UNAUTHORIZED)
+        
+        email = request.user.email
+        user = User.objects.get(email=email)
+        serializer = self.serializer_class(data = request.data)
+        
+        serializer.is_valid(raise_exception=True)
+        
+        if user.check_password(serializer.validated_data.get('password')):
+            return Response("invalid password", status=status.HTTP_400_BAD_REQUEST)
+        
+        user.delete()
+        return Response("user deleted successfully", status=status.HTTP_200_OK)
+
+    parser_classes = [MultiPartParser, FormParser, JSONParser]
+    
+    def patch(self, request, *args, **kwargs):
+        try:
+            email = request.user.email
+            user = User.objects.get(email=email)
+            serializer = self.serializer_class(user, data = request.data, partial=True)
+        
+            if serializer.is_valid():
+                serializer.update(user, serializer.validated_data)
+                return Response(serializer.data, status=status.HTTP_200_OK)
+            else:
+                return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+        
+        except User.DoesNotExist:
+            return Response("user not found", status=status.HTTP_404_NOT_FOUND)
