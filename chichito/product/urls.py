@@ -1,26 +1,33 @@
-from django.urls import path,re_path
+from django.urls import path
 from .views import *
-from rest_framework import permissions
-from .views import ProductListView , ProductViewSet , FeatureViewSet , FeatureValueViewSet , ProductFilter
-from rest_framework.routers import DefaultRouter
+from .views import *
 
 
 
-
-router = DefaultRouter()
-router.register(r'Product', ProductViewSet, basename='product')
-router.register(r'Feature', FeatureViewSet, basename='feature')
-router.register(r'FeatureValue', FeatureValueViewSet, basename='feature-value')
-router.register(r'ProductList', ProductListView, basename='product-list')
-router.register(r'Filter', ProductFilter, basename='Filter')
-router.register(r'sortByMinPrice' , ProductSortMinViewSet , basename='sort-by-min-price')
-router.register(r'sortByMaxPrice' , ProductSortMaxViewSet , basename='sort-by-max-price')
-router.register(r'sortByName' , ProductSortByNameViewSet , basename='sort-by-name')
-router.register(r'search', ProductSearchViewSet, basename='product-search')
 
 
 
 urlpatterns = [
+    path('products/', ProductListAPIView.as_view(), name='product-list'),
+    path('product/<int:pk>/', ProductAPIView.as_view(), name='product-retrieve-update-delete'),
+    
+    path('features/', FeatureListAPIView.as_view(), name='feature-list'),
+    path('feature/<int:pk>/', FeatureAPIView.as_view(), name='feature-detail'), 
+
+
+    path('feature-values/', FeatureValueListAPIView.as_view(), name='feature-value-list'),  
+    path('feature-value/<int:pk>/', FeatureValueAPIView.as_view(), name='feature-value-detail'), 
+
+    path('products/category/<str:category_name>/', ProductPerCategoryAPIView.as_view(), name='products-per-category'),
+
+    path('products/search/', ProductSearchAPIView.as_view(), name='product-search'),
+
+    path('products/sort/', ProductSortByNameAPIView.as_view(), name='product-sort-by-name'),
+
+    path('products/sort/price/', ProductSortPriceAPIView.as_view(), name='product-sort-by-price'),
+
+    path('products/filter/', ProductFilterAPIView.as_view(), name='product-filter'),
+
+
 ]
 
-urlpatterns += router.urls
