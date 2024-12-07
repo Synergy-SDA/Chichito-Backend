@@ -28,11 +28,11 @@ class UserManager(BaseUserManager):
         user.save(using= self._db)
         return user
 
-    def create_superuser(self, username, email, password=None, **extra_fields):
+    def create_superuser(self, email, password=None, **extra_fields):
         extra_fields.setdefault("is_staff", True)
         extra_fields.setdefault("is_superuser", True)
         
-        user = self.create_user(username, email, password, **extra_fields)
+        user = self.create_user( email, password, **extra_fields)
         user.save(using= self._db)
         return user
     
@@ -41,14 +41,13 @@ class User(AbstractBaseUser, PermissionsMixin):
     class SexChoices(models.TextChoices):
         MALE = 'M', _('مرد')
         FEMALE = 'F', _('زن')
-    username = models.CharField(default='salam',
-                                unique=True,
+    username = models.CharField(unique=True,
                                 max_length=255,
                                 validators=[MinLengthValidator(5)])
     first_name = models.CharField(max_length=255)
     last_name = models.CharField(max_length=255)
     phone_number = models.CharField(unique=True, max_length=255)
-    email = models.EmailField(max_length=255, unique=True, verbose_name=_('Email Address') , default="Chichito@gmail.com")
+    email = models.EmailField(max_length=255, unique=True, verbose_name=_('Email Address'))
     profile_image = models.ImageField(upload_to='profile_images/', null=True, blank=True)
     birth_date = models.DateField(null=True, blank=True)
     address = models.CharField(max_length=255, blank=True)

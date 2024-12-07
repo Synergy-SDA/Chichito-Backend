@@ -33,6 +33,12 @@ ALLOWED_HOSTS = ['*']
 
 AUTH_USER_MODEL = 'user.User' 
 
+EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
+EMAIL_HOST="smtp.gmail.com"
+EMAIL_PORT=587
+EMAIL_HOST_USER="noreply.chichito.ir@gmail.com"
+EMAIL_HOST_PASSWORD="hwgc fqfv yybl clbh"
+EMAIL_USE_TLS=True
 # Application definition
 
 INSTALLED_APPS = [
@@ -43,12 +49,14 @@ INSTALLED_APPS = [
     'django.contrib.messages',
     'django.contrib.staticfiles',
     
-    'drf_spectacular',
+
     'rest_framework_simplejwt.token_blacklist',
+    'storages',
     
     'user',
     'category',
     'rest_framework',
+    'drf_spectacular',
     'drf_yasg',
     'corsheaders',
     'product',
@@ -90,17 +98,28 @@ WSGI_APPLICATION = 'chichito.wsgi.application'
 # Database
 # https://docs.djangoproject.com/en/4.2/ref/settings/#databases
 
-DATABASES = {
+# DATABASES = {
     
-    'default': {
-        'ENGINE': 'mysql.connector.django',
-        'NAME': os.getenv('DB_NAME'),
-        'USER': os.getenv('DB_USER'),
-        'PASSWORD': os.getenv('DB_PASSWORD'),
-        'HOST': os.getenv('DB_HOST'),
-        'PORT': os.getenv('DB_PORT'),
+#     'default': {
+#         'ENGINE': 'mysql.connector.django',
+#         'NAME': os.getenv('DB_NAME'),
+#         'USER': os.getenv('DB_USER'),
+#         'PASSWORD': os.getenv('DB_PASSWORD'),
+#         'HOST': os.getenv('DB_HOST'),
+#         'PORT': os.getenv('DB_PORT'),
+#     }
+# }
+
+DATABASES = {
+        'default': {
+            'ENGINE': 'django.db.backends.postgresql',
+            'NAME': os.getenv('DB_NAME', 'LIARA_URL is not set.'),
+            'USER': os.getenv('DB_USER', 'LIARA_URL is not set.'),
+            'PASSWORD': os.getenv('DB_PASSWORD', 'LIARA_URL is not set.'),
+            'HOST': os.getenv('DB_HOST', 'LIARA_URL is not set.'),
+            'PORT': os.getenv('DB_PORT', 'LIARA_URL is not set.'),
+        }
     }
-}
 
 
 
@@ -158,6 +177,14 @@ REST_FRAMEWORK = {
 # ]
 CORS_ALLOW_ALL_ORIGINS = True
 
+STORAGES = {
+  "default": {
+      "BACKEND": "storages.backends.s3.S3Storage",
+  },
+  "staticfiles": {
+      "BACKEND": "django.contrib.staticfiles.storage.StaticFilesStorage",
+  },
+}
 # settings.py
 # DEBUG = True
 
@@ -168,3 +195,16 @@ EMAIL_PORT=587
 EMAIL_HOST_USER="noreply.chichito.ir@gmail.com"
 EMAIL_HOST_PASSWORD="hwgc fqfv yybl clbh"
 EMAIL_USE_TLS=True
+
+
+LIARA_ENDPOINT    = os.getenv("LIARA_ENDPOINT")
+LIARA_BUCKET_NAME = os.getenv("LIARA_BUCKET_NAME")
+LIARA_ACCESS_KEY  = os.getenv("LIARA_ACCESS_KEY")
+LIARA_SECRET_KEY  = os.getenv("LIARA_SECRET_KEY")
+
+
+AWS_ACCESS_KEY_ID       = LIARA_ACCESS_KEY
+AWS_SECRET_ACCESS_KEY   = LIARA_SECRET_KEY
+AWS_STORAGE_BUCKET_NAME = LIARA_BUCKET_NAME
+AWS_S3_ENDPOINT_URL     = LIARA_ENDPOINT
+AWS_S3_REGION_NAME      = 'us-east-1' 

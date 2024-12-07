@@ -37,86 +37,117 @@ class ProductSerializer(serializers.ModelSerializer):
         child=serializers.DictField(),  # Accept a list of dictionaries
         write_only=True
     )
-    category = CategoryDetailSerializer()
+    product_features = serializers.SerializerMethodField(read_only=True)
+    category = serializers.PrimaryKeyRelatedField(
+        queryset=Category.objects.all(),
+        required=False,
+        allow_null=True
+    )
+    category_details = CategoryDetailSerializer(source='category', read_only=True)
 
     class Meta:
         model = Product
         fields = [
+            'id',
             'name',
             'description',
             'price',
             'count_exist',
+            'product_image',
             'is_available',
             'created_at',
             'updated_at',
-            'features',
+            'features',# write-only field for create/update
             'category',
+            'category_details',
+            'product_features',
+        ]
+    def get_product_features(self, obj):
+        return [
+            {
+                'feature': feature_value.feature.name, 
+                'value': feature_value.value
+            } 
+            for feature_value in obj.features.all()
         ]
 
     def create(self, validated_data):
         features_data = validated_data.pop('features', [])
-        category_data = validated_data.pop('category', None)
+        category = validated_data.pop('category', None)
 
-        # Handle category creation or association
-        category = None
-        if category_data:
-            category, _ = Category.objects.get_or_create(**category_data)
+       
+    # Handle category creation or association
+        if isinstance(category, dict):
+        # If category is passed as a dictionary, create or get the category
+            category, _ = Category.objects.get_or_create(**category)
 
-        # Create the product
         product = Product.objects.create(category=category, **validated_data)
 
-        # Process feature values
-        for feature_data in features_data:
-            # Extract the key-value pair
-            for key, value in feature_data.items():
+        if features_data:
+            feature_values = []
+            for feature_data in features_data:
+                # Extract the key-value pair
+                feature_name = list(feature_data.keys())[0]
+                feature_value_text = list(feature_data.values())[0]
+
                 # Get or create the feature
-                feature, _ = Feature.objects.get_or_create(name=key)
-                # Create or retrieve the feature value
+                feature, _ = Feature.objects.get_or_create(name=feature_name)
+
+                # Get or create the feature value
                 feature_value, _ = FeatureValue.objects.get_or_create(
                     feature=feature,
-                    value=value
+                    value=feature_value_text
                 )
-                # Associate the feature value with the product
-                product.features.add(feature_value)
+
+                # Collect the feature values to add in bulk
+                feature_values.append(feature_value)
+
+            # Add all feature values to the product in a single operation
+            product.features.add(*feature_values)
 
         return product
 
-
     def update(self, instance, validated_data):
         features_data = validated_data.pop('features', [])
-        category_data = validated_data.pop('category', None)
+        category = validated_data.pop('category', None)
 
-        # Update basic fields
+        # Update basic product fields
         for attr, value in validated_data.items():
             setattr(instance, attr, value)
 
-        # Update category
-        if category_data:
-            category, _ = Category.objects.get_or_create(**category_data)
+        # Handle category update
+        if category:
+            if isinstance(category, dict):
+                category, _ = Category.objects.get_or_create(**category)
             instance.category = category
 
         instance.save()
 
-        # Update feature values
+        # Update product features
         if features_data:
-            instance.features.clear()  # Remove existing features
+            # Clear existing features
+            instance.features.clear()
+
+            # Add new features
+            feature_values = []
             for feature_data in features_data:
-                feature_name = feature_data.get('feature')
-                value = feature_data.get('value')
+                feature_name = list(feature_data.keys())[0]
+                feature_value_text = list(feature_data.values())[0]
 
-                # Find or create FeatureValue
-                try:
-                    feature_value = FeatureValue.objects.get(
-                        feature__name__iexact=feature_name,
-                        value__iexact=value
-                    )
-                except FeatureValue.DoesNotExist:
-                    # Create feature if it doesn't exist
-                    feature, _ = Feature.objects.get_or_create(name=feature_name)
-                    feature_value = FeatureValue.objects.create(feature=feature, value=value)
+                # Get or create the feature
+                feature, _ = Feature.objects.get_or_create(name=feature_name)
 
-                # Add feature value to the product
-                instance.features.add(feature_value)
+                # Get or create the feature value
+                feature_value, _ = FeatureValue.objects.get_or_create(
+                    feature=feature,
+                    value=feature_value_text
+                )
+
+                # Collect feature values to add
+                feature_values.append(feature_value)
+
+            # Add all feature values to the product
+            instance.features.add(*feature_values)
 
         return instance
 
