@@ -79,11 +79,32 @@ class TempUser(models.Model):
     email = models.EmailField(max_length=255)
     password = models.CharField(max_length=255)
     date_joined = models.DateTimeField(auto_now_add=True)
-    
+    phone_number = models.CharField(max_length=255)
+    #ali inja bia username va phone number  to benevis baad to serializer baad verify bbe user asli bede 
     def str(self):
-        return self.username
+        return self.email
     
 
 class OneTimePassword(models.Model):
     temp_user = models.ForeignKey(TempUser, on_delete=models.CASCADE)
     otp = models.CharField(max_length=6, unique=True)
+
+class Wallet(models.Model):
+    user = models.OneToOneField(User, on_delete=models.CASCADE) 
+    balance = models.DecimalField(max_digits=10, decimal_places=2, default=0.00) 
+
+    def str(self):
+        return f"Wallet for {self.user.username}"
+
+    def add_balance(self, amount):
+        """Add balance to the wallet"""
+        self.balance += amount
+        self.save()
+
+    def deduct_balance(self, amount):
+        """Deduct balance from the wallet if sufficient funds are available"""
+        if self.balance >= amount:
+            self.balance -= amount
+            self.save()
+        else:
+            raise ValueError("Insufficient funds in wallet")
