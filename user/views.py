@@ -4,6 +4,7 @@ from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework import status
 from rest_framework.parsers import MultiPartParser, FormParser, JSONParser
+from rest_framework.permissions import IsAuthenticated
 
 from .utility import send_otp_email
 from .serializers import *
@@ -141,3 +142,26 @@ class UserUpdateView(APIView):
         
         except User.DoesNotExist:
             return Response("user not found", status=status.HTTP_404_NOT_FOUND)
+        
+class WalletDetailView(APIView):
+    permission_classes = [IsAuthenticated]
+    serializer_class = WalletSerializer
+
+    def get(self, request):
+        try:
+            wallet = Wallet.objects.get(user=request.user)
+            serializer = self.serializer_class(wallet)  # Serialize the object
+            return Response(serializer.data, status=status.HTTP_200_OK)
+        except Wallet.DoesNotExist:
+            return Response({"detail": "Wallet not found."}, status=status.HTTP_404_NOT_FOUND)
+
+    def patch(self, request):
+        try:
+            wallet = Wallet.objects.get(user=request.user)
+            serializer = self.serializer_class(wallet, data=request.data, partial=True)
+            if serializer.is_valid():
+                serializer.save()
+                return Response(serializer.data, status=status.HTTP_200_OK)
+            return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+        except Wallet.DoesNotExist:
+            return Response({"detail": "Wallet not found."}, status=status.HTTP_404_NOT_FOUND)

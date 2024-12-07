@@ -35,13 +35,15 @@ class UserCreateSerializer(serializers.ModelSerializer):
     
     class Meta:
         model = TempUser
-        fields = ['email', 'password', 'date_joined']
+        fields = ['email', 'password','phone_number', 'date_joined']
         
     def validate(self, attrs):
         temp_user_ttl = timezone.now() - datetime.timedelta(minutes=1)
         
         email = attrs.get('email')
         password = attrs.get('password')
+        
+
         
         user_email = User.objects.filter(email=email).first()
         
@@ -72,7 +74,7 @@ class VerifyEmailSerializer(serializers.Serializer):
         try:
             otp_obj = OneTimePassword.objects.get(otp=otp)
             temp_user = otp_obj.temp_user
-            user = User.objects.create_user(email=temp_user.email, password=temp_user.password)
+            user = User.objects.create_user(email=temp_user.email, password=temp_user.password,username=temp_user.email,phone_number=temp_user.phone_number)
             temp_user.delete()
             return user
             
@@ -195,4 +197,17 @@ class UserUpdateSerializer(serializers.ModelSerializer):
             profile_image = validated_data.get('profile_image', instance.profile_image)
             instance.save()
             return instance
-    
+
+class WalletSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Wallet
+        fields = ['user', 'balance']
+        read_only_fields = ['user']  
+
+    def update(self, instance, validated_data):
+        """Handle wallet balance updates"""
+        balance = validated_data.get('balance', None)
+        if balance:
+            instance.balance += balance
+        instance.save()
+        return instance
