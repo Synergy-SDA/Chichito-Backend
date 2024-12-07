@@ -43,7 +43,7 @@ class ProductSerializer(serializers.ModelSerializer):
         required=False,
         allow_null=True
     )
-    category_details = CategorySerializer(source='category', read_only=True)
+    category_details = CategoryDetailSerializer(source='category', read_only=True)
 
     class Meta:
         model = Product
@@ -151,3 +151,38 @@ class ProductSerializer(serializers.ModelSerializer):
 
         return instance
 
+
+
+
+class CommentCreateSerializer(serializers.ModelSerializer):
+    rate = serializers.ChoiceField(choices=Comment.RatingChoices.choices)
+
+    class Meta:
+        model = Comment
+        fields = ['user', 'product', 'content', 'rate']
+
+    def validate(self, attrs):
+        user = attrs.get('user')
+        product = attrs.get('product')
+
+        if not User.objects.filter(id=user.id).exists():
+            raise serializers.ValidationError({'user': 'User does not exist.'})
+
+        if not Product.objects.filter(id=product.id).exists():
+            raise serializers.ValidationError({'product': 'Product does not exist.'})
+
+        return attrs
+
+    def create(self, validated_data):
+        return Comment.objects.create(**validated_data)
+    
+    
+
+class CommentDetailSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Comment
+        fields = ['user',  'product',  'content' , 'rate']
+        
+
+
+    

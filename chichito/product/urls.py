@@ -8,6 +8,8 @@ from .views import *
 
 
 urlpatterns = [
+    path('comments/' , CommentCreateAPI.as_view(), name='comment'),
+    path('comments/<int:product_id>/', CommentRetriveView.as_view() , name='comment-id'),
     path('products/', ProductListAPIView.as_view(), name='product-list'),
     path('product/<int:pk>/', ProductAPIView.as_view(), name='product-retrieve-update-delete'),
     
