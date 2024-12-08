@@ -60,6 +60,7 @@ INSTALLED_APPS = [
     'drf_yasg',
     'corsheaders',
     'product',
+    'cart',
 
 ]
 
@@ -187,6 +188,14 @@ STORAGES = {
 }
 # settings.py
 # DEBUG = True
+from datetime import timedelta
+
+SIMPLE_JWT = {
+    'ACCESS_TOKEN_LIFETIME': timedelta(hours=2),  
+    'REFRESH_TOKEN_LIFETIME': timedelta(days=15),  
+           
+}
+
 
 
 EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
