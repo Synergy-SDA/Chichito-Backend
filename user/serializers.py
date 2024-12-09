@@ -134,34 +134,33 @@ class PasswordResetOTPRequestSerializer(serializers.Serializer):
 
         
 class PasswordResetOTPConfirmSerializer(serializers.Serializer):
-    email = serializers.EmailField()
     otp = serializers.CharField(max_length=6)
     new_password = serializers.CharField(min_length=8, max_length=64, write_only=True)
 
     def validate(self, attrs):
-        email = attrs.get('email')
         otp = attrs.get('otp')
         new_password = attrs.get('new_password')
 
         try:
-            user = User.objects.get(email=email)
-            otp_obj = UserOneTimePassword.objects.get(user=user, otp=otp)
+        
+            otp_obj = UserOneTimePassword.objects.get(otp=otp)
 
             if not otp_obj.is_valid():
                 raise serializers.ValidationError('OTP has expired.')
-            
 
+            user = otp_obj.user
+
+        
             user.set_password(new_password)
             user.save()
 
-
             otp_obj.delete()
-        except User.DoesNotExist:
-            raise serializers.ValidationError('Invalid email or OTP.')
+
         except UserOneTimePassword.DoesNotExist:
             raise serializers.ValidationError('Invalid OTP.')
 
         return attrs
+
 
     
 
