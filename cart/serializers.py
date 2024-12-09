@@ -1,7 +1,7 @@
 from rest_framework import serializers
 from product.models import Product
 from .models import CartItem
-from .models import Cart
+from .models import Cart,GiftWrap
 class CartItemSerializer(serializers.ModelSerializer):
     product_name = serializers.CharField(source="product.name", read_only=True)
     product_price = serializers.DecimalField(source="product.price", max_digits=10, decimal_places=2, read_only=True)
@@ -24,6 +24,13 @@ class CartSerializer(serializers.ModelSerializer):
 
     def get_total_price(self, obj):
         return sum(item.total_price() for item in obj.items.all())
+
+
+class GiftWrapSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = GiftWrap
+        fields = ['id', 'name', 'description', 'price']
+
 
 
 

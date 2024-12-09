@@ -29,6 +29,7 @@ class ProductListAPIView(APIView):
         return paginator.get_paginated_response(serializer.data)
 
 class ProductAPIView(APIView):
+    parser_classes = [MultiPartParser, FormParser, JSONParser]
     @extend_schema(
         request=ProductSerializer,
         responses=ProductSerializer,
