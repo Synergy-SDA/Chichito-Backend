@@ -108,3 +108,13 @@ class Wallet(models.Model):
             self.save()
         else:
             raise ValueError("Insufficient funds in wallet")
+        
+class UserOneTimePassword(models.Model):
+    user = models.ForeignKey(User, on_delete=models.CASCADE)
+    otp = models.CharField(max_length=6, unique=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    def is_valid(self):
+        
+        expiry_time = self.created_at + datetime.timedelta(minutes=4)
+        return timezone.now() <= expiry_time

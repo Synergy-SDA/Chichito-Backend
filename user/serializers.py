@@ -7,7 +7,7 @@ from django.core.mail import EmailMessage
 from django.core.validators import MaxLengthValidator
 from django.utils import timezone
 
-
+from .utility import *
 
 from rest_framework.exceptions import AuthenticationFailed
 from rest_framework import serializers
@@ -120,59 +120,49 @@ class UserLoginSerializer(serializers.ModelSerializer):
 class UserLogoutSerializer(serializers.Serializer):
     refresh_token = serializers.CharField()
         
-class PasswordResetRequestSerializer(serializers.ModelSerializer):
+class PasswordResetOTPRequestSerializer(serializers.Serializer):
     email = serializers.EmailField()
-    class Meta:
-        model = User
-        fields = ['email']
 
     def validate(self, attrs):
         email = attrs.get('email')
-        
         try:
             user = User.objects.get(email=email)
-            
-            uidb64 = urlsafe_base64_encode(smart_bytes(user.id))
-            token = PasswordResetTokenGenerator().make_token(user)
-            # relative_link = reverse('reset-password', kwargs={'uidb64': uidb64, 'token': token})
-            # absolute_url = f'http://localhost:5173/{relative_link}'
-            absolute_url = f'https://localhost:5173/reset-password/{uidb64}/{token}'
-            
-            email_subject = 'Reset your password'
-            email_body = f'Click the link below to reset your password\n{absolute_url}'
-            
-            email = EmailMessage(subject=email_subject, body=email_body, from_email=settings.EMAIL_HOST_USER, to=[email])
-            email.send()
-            
-            return {'email': user.email}
-            
+            send_otp_to_user_email(user)
         except User.DoesNotExist:
-            raise AuthenticationFailed('user not found')
+            raise serializers.ValidationError('User with this email does not exist.')
+        return attrs
 
         
-        
-class PasswordResetConfirmSerializer(serializers.ModelSerializer):
-    uidb64 = serializers.CharField(max_length=255, validators=[MaxLengthValidator(255)], read_only=True)
-    password = serializers.CharField(min_length=8, max_length=64, write_only=True)
-    class Meta:
-        model = User
-        fields = ['password', 'uidb64']
-        
+class PasswordResetOTPConfirmSerializer(serializers.Serializer):
+    email = serializers.EmailField()
+    otp = serializers.CharField(max_length=6)
+    new_password = serializers.CharField(min_length=8, max_length=64, write_only=True)
+
     def validate(self, attrs):
-        password = attrs.get('password')
-        token = self.context.get('token')
-        uidb64 = self.context.get('uidb64')
-        
-        id = smart_str(urlsafe_base64_decode(uidb64))
-        user = User.objects.get(id=id)
-        
-        if not PasswordResetTokenGenerator().check_token(user, token):
-            raise AuthenticationFailed('The reset link is invalid', 401)
-        
-        user.set_password(password)
-        user.save()
-        
-        return user
+        email = attrs.get('email')
+        otp = attrs.get('otp')
+        new_password = attrs.get('new_password')
+
+        try:
+            user = User.objects.get(email=email)
+            otp_obj = UserOneTimePassword.objects.get(user=user, otp=otp)
+
+            if not otp_obj.is_valid():
+                raise serializers.ValidationError('OTP has expired.')
+            
+
+            user.set_password(new_password)
+            user.save()
+
+
+            otp_obj.delete()
+        except User.DoesNotExist:
+            raise serializers.ValidationError('Invalid email or OTP.')
+        except UserOneTimePassword.DoesNotExist:
+            raise serializers.ValidationError('Invalid OTP.')
+
+        return attrs
+
     
 
 class UserRetriveSerializer(serializers.ModelSerializer):
