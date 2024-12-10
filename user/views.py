@@ -55,26 +55,19 @@ class LoginUserView(APIView):
 
 
 class PasswordResetRequestView(APIView):
-    serializer_class = PasswordResetRequestSerializer
+    serializer_class = PasswordResetOTPRequestSerializer
     def post(self, request):
-        serializer = PasswordResetRequestSerializer(data=request.data, context={'request': request})
-        
-        if serializer.is_valid(raise_exception=True):
-            return Response("password reset link has been sent to your email", status=status.HTTP_200_OK)
-        
-        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
-   
+        serializer = PasswordResetOTPRequestSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        return Response({"message": "OTP sent to email."}, status=status.HTTP_200_OK)
+
  
 class PasswordResetConfirmView(APIView):
-    serializer_class = PasswordResetConfirmSerializer
-    def post(self, request, uidb64, token):
-        serializer = PasswordResetConfirmSerializer(data=request.data, context={'request': request, 'uidb64': uidb64, 'token': token})
-        
-        if serializer.is_valid(raise_exception=True):
-            return Response("password reset successfully", status=status.HTTP_200_OK)
-        
-        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
-    
+    serializer_class = PasswordResetOTPConfirmSerializer
+    def post(self, request):
+        serializer = PasswordResetOTPConfirmSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        return Response({"message": "Password reset successful."}, status=status.HTTP_200_OK)
 
 class LogoutUserView(APIView):
     serializer_class = UserLogoutSerializer
