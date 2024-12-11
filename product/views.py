@@ -511,37 +511,3 @@ class ProductCommentsView(APIView):
         # Serialize the comments
         serializer = self.serializer_class(comments, many=True)
         return Response(serializer.data, status=status.HTTP_200_OK)
-    
-    
-    def delete(self, request, *args, **kwargs):
-        if (not request.user.is_authenticated):
-            return Response("user not authenticated", status=status.HTTP_401_UNAUTHORIZED)
-        
-        email = request.user.email
-        user = User.objects.get(email=email)
-        serializer = self.serializer_class(data = request.data)
-        
-        serializer.is_valid(raise_exception=True)
-        
-        if user.check_password(serializer.validated_data.get('password')):
-            return Response("invalid password", status=status.HTTP_400_BAD_REQUEST)
-        
-        user.delete()
-        return Response("user deleted successfully", status=status.HTTP_200_OK)
-
-    parser_classes = [MultiPartParser, FormParser, JSONParser]
-    
-    def patch(self, request, *args, **kwargs):
-        try:
-            email = request.user.email
-            user = User.objects.get(email=email)
-            serializer = self.serializer_class(user, data = request.data, partial=True)
-        
-            if serializer.is_valid():
-                serializer.update(user, serializer.validated_data)
-                return Response(serializer.data, status=status.HTTP_200_OK)
-            else:
-                return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
-        
-        except User.DoesNotExist:
-            return Response("user not found", status=status.HTTP_404_NOT_FOUND)
