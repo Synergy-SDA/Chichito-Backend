@@ -492,17 +492,22 @@ class CommentRetriveView(APIView):
             return Response(serializer.data, status=status.HTTP_200_OK)
 
 
-class CommentOfProductView(APIView):
+
+class ProductCommentsView(APIView):
     serializer_class = CommentDetailSerializer
-    parser_classes = [MultiPartParser, FormParser, JSONParser]
-    
-    # Retrieve a comment by its ID
-    def get(self, request, comment_id, *args, **kwargs):
+
+    def get(self, request, product_id, *args, **kwargs):
+        # Check if the product exists
         try:
-            comment = Comment.objects.get(id=comment_id)
-        except Comment.DoesNotExist:
-            return Response({"detail": "Comment not found."}, status=status.HTTP_404_NOT_FOUND)
-        
-        serializer = self.serializer_class(comment)
+            product = Product.objects.get(id=product_id)
+        except Product.DoesNotExist:
+            return Response({"detail": "Product not found."}, status=status.HTTP_404_NOT_FOUND)
+
+        # Retrieve all comments for the product
+        comments = Comment.objects.filter(product=product)
+        if not comments.exists():
+            return Response({"detail": "No comments found for this product."}, status=status.HTTP_404_NOT_FOUND)
+
+        # Serialize the comments
+        serializer = self.serializer_class(comments, many=True)
         return Response(serializer.data, status=status.HTTP_200_OK)
-    
