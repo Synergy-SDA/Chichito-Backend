@@ -511,3 +511,25 @@ class ProductCommentsView(APIView):
         # Serialize the comments
         serializer = self.serializer_class(comments, many=True)
         return Response(serializer.data, status=status.HTTP_200_OK)
+
+
+
+class SimilarProductsView(APIView):
+    serializer_class = ProductSerializer
+
+    def get(self, request, product_id, *args, **kwargs):
+        try:
+            # Fetch the product to get its category
+            product = Product.objects.get(id=product_id)
+        except Product.DoesNotExist:
+            return Response({"detail": "Product not found."}, status=status.HTTP_404_NOT_FOUND)
+
+        # Get up to 10 products in the same category, excluding the current product
+        similar_products = Product.objects.filter(category=product.category).exclude(id=product_id)[:10]
+
+        if not similar_products.exists():
+            return Response({"detail": "No similar products found."}, status=status.HTTP_404_NOT_FOUND)
+
+        # Serialize the similar products
+        serializer = self.serializer_class(similar_products, many=True)
+        return Response(serializer.data, status=status.HTTP_200_OK)
