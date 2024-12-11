@@ -187,7 +187,7 @@ STORAGES = {
   },
 }
 # settings.py
-# DEBUG = True
+DEBUG = False
 from datetime import timedelta
 
 SIMPLE_JWT = {

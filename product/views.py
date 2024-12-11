@@ -441,58 +441,6 @@ class CommentCreateAPI(APIView):
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
     
 
-class CommentRetriveView(APIView):
-    serializer_class = CommentDetailSerializer
-    
-    def get(self, request, product_id, *args, **kwargs):
-        try:
-            product = Product.objects.get(id=product_id)
-        except Product.DoesNotExist:
-            return Response({"detail": "Product not found."}, status=status.HTTP_404_NOT_FOUND)
-
-        comments = Comment.objects.filter(product=product)
-        if not comments.exists():
-            return Response({"detail": "No comments found for this product."}, status=status.HTTP_404_NOT_FOUND)
-        
-        serializer = self.serializer_class(comments, many=True)
-        return Response(serializer.data, status=status.HTTP_200_OK)
-    
-    
-    def delete(self, request, product_id, comment_id, *args, **kwargs):
-        permission_classes = [IsAuthenticated]
-        try:
-            product = Product.objects.get(id=product_id)
-        except Product.DoesNotExist:
-            return Response({"detail": "Product not found."}, status=status.HTTP_404_NOT_FOUND)
-
-        try:
-            comment = Comment.objects.get(id=comment_id, product=product)
-        except Comment.DoesNotExist:
-            return Response({"detail": "Comment not found."}, status=status.HTTP_404_NOT_FOUND)
-
-        # Perform the deletion
-        comment.delete()
-        return Response({"detail": "Comment deleted successfully."}, status=status.HTTP_204_NO_CONTENT)
-
-    parser_classes = [MultiPartParser, FormParser, JSONParser]
-    
-    def patch(self, request, *args, **kwargs):
-        permission_classes = [IsAuthenticated]
-        try:
-            email = request.user.email
-            user = User.objects.get(email=email)
-            serializer = self.serializer_class(user, data = request.data, partial=True)
-        
-            if serializer.is_valid():
-                serializer.update(user, serializer.validated_data)
-                return Response(serializer.data, status=status.HTTP_200_OK)
-            else:
-                return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
-        
-        except User.DoesNotExist:
-            return Response("user not found", status=status.HTTP_404_NOT_FOUND)
-        
-
 class ShowAllCommentView(APIView):
     serializer_class = CommentDetailSerializer
 
@@ -500,3 +448,61 @@ class ShowAllCommentView(APIView):
         comments = Comment.objects.all()  # Fetch all comments
         serializer = self.serializer_class(comments, many=True)  # Serialize the comments
         return Response(serializer.data, status=status.HTTP_200_OK)  
+    
+    
+
+class CommentRetriveView(APIView):
+    serializer_class = CommentDetailSerializer
+    permission_classes = [IsAuthenticated]
+    parser_classes = [MultiPartParser, FormParser, JSONParser]
+    
+    def get(self, request, comment_id, *args, **kwargs):
+        try:
+            comment = Comment.objects.get(id=comment_id)
+        except Comment.DoesNotExist:
+            return Response({"detail": "Comment not found."}, status=status.HTTP_404_NOT_FOUND)
+        
+        serializer = self.serializer_class(comment)
+        return Response(serializer.data, status=status.HTTP_200_OK)
+    
+    def delete(self, request, comment_id, *args, **kwargs):
+        try:
+            comment = Comment.objects.get(id=comment_id)
+        except Comment.DoesNotExist:
+            return Response({"detail": "Comment not found."}, status=status.HTTP_404_NOT_FOUND)
+
+        if comment.user != request.user:
+            return Response({"detail": "You do not have permission to delete this comment."}, status=status.HTTP_403_FORBIDDEN)
+
+        comment.delete()
+        return Response({"detail": "Comment deleted successfully."}, status=status.HTTP_204_NO_CONTENT)
+
+    def patch(self, request, comment_id, *args, **kwargs):
+        try:
+            comment = Comment.objects.get(id=comment_id)
+        except Comment.DoesNotExist:
+            return Response({"detail": "Comment not found."}, status=status.HTTP_404_NOT_FOUND)
+
+        if comment.user != request.user:
+            return Response({"detail": "You do not have permission to edit this comment."}, status=status.HTTP_403_FORBIDDEN)
+
+        serializer = self.serializer_class(comment, data=request.data, partial=True)
+        if serializer.is_valid(raise_exception=True):
+            serializer.save()
+            return Response(serializer.data, status=status.HTTP_200_OK)
+
+
+class CommentOfProductView(APIView):
+    serializer_class = CommentDetailSerializer
+    parser_classes = [MultiPartParser, FormParser, JSONParser]
+    
+    # Retrieve a comment by its ID
+    def get(self, request, comment_id, *args, **kwargs):
+        try:
+            comment = Comment.objects.get(id=comment_id)
+        except Comment.DoesNotExist:
+            return Response({"detail": "Comment not found."}, status=status.HTTP_404_NOT_FOUND)
+        
+        serializer = self.serializer_class(comment)
+        return Response(serializer.data, status=status.HTTP_200_OK)
+    

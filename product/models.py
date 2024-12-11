@@ -30,6 +30,7 @@ class Product(models.Model):
         if self.count_exist == 0:
             self.is_available = False
         super(Product, self).save(*args, **kwargs)
+        
 class Feature(models.Model):
     name = models.CharField(max_length=255)
 

@@ -175,13 +175,22 @@ class CommentCreateSerializer(serializers.ModelSerializer):
         return Comment.objects.create(**validated_data)
     
     
+    
 
 class CommentDetailSerializer(serializers.ModelSerializer):
     class Meta:
         model = Comment
         fields = [ 'user' ,'product',  'content' , 'rate']
         read_only_fields = ['user']
+    def update(self, instance, validated_data):
+        # Update the fields of the instance with the validated data
+        instance.content = validated_data.get('content', instance.content)
+        instance.rate = validated_data.get('rate', instance.rate)
+        # You can add more fields as needed
         
+        # Save the updated instance
+        instance.save()
+        return instance
         
 
 
