@@ -159,21 +159,19 @@ class CommentCreateSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Comment
-        fields = ['user', 'product', 'content', 'rate']
+        fields = ['user' ,'product', 'content', 'rate']
+        read_only_fields = ['user'] 
 
     def validate(self, attrs):
         user = attrs.get('user')
         product = attrs.get('product')
-
-        if not User.objects.filter(id=user.id).exists():
-            raise serializers.ValidationError({'user': 'User does not exist.'})
-
         if not Product.objects.filter(id=product.id).exists():
             raise serializers.ValidationError({'product': 'Product does not exist.'})
 
         return attrs
 
     def create(self, validated_data):
+        validated_data['user'] = self.context['request'].user
         return Comment.objects.create(**validated_data)
     
     
@@ -181,7 +179,9 @@ class CommentCreateSerializer(serializers.ModelSerializer):
 class CommentDetailSerializer(serializers.ModelSerializer):
     class Meta:
         model = Comment
-        fields = ['user',  'product',  'content' , 'rate']
+        fields = [ 'user' ,'product',  'content' , 'rate']
+        read_only_fields = ['user']
+        
         
 
 

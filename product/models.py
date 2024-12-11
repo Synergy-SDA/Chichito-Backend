@@ -48,10 +48,10 @@ class FeatureValue(models.Model):
 class Comment(models.Model):
     user = models.ForeignKey(
         User, related_name='comments', on_delete=models.CASCADE
-    )  # Changed to 'user' for clarity
+    )  
     product = models.ForeignKey(
         Product, related_name='comments', on_delete=models.CASCADE
-    )  # Changed related_name
+    )  
     content = models.CharField(max_length=255)
     
     class RatingChoices(models.IntegerChoices):
