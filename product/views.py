@@ -12,6 +12,8 @@ from drf_spectacular.utils import extend_schema,OpenApiParameter, OpenApiExample
 import json
 from rest_framework.views import APIView
 from rest_framework.parsers import MultiPartParser, FormParser, JSONParser
+from rest_framework.permissions import IsAuthenticated
+
 
 
 
@@ -424,10 +426,12 @@ class ProductSearchAPIView(APIView):
 
 
 class CommentCreateAPI(APIView):
+    permission_classes = [IsAuthenticated]
     serializer_class = CommentCreateSerializer
       
     def post(self, request):
-        serializer = self.serializer_class(data=request.data)
+        # serializer = self.serializer_class(data=request.data)
+        serializer = self.serializer_class(data=request.data, context={'request': request})
         if serializer.is_valid(raise_exception=True):
             serializer.save()
             return Response({
@@ -437,58 +441,99 @@ class CommentCreateAPI(APIView):
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
     
 
+class ShowAllCommentView(APIView):
+    serializer_class = CommentDetailSerializer
+
+    def get(self, request, *args, **kwargs):
+        comments = Comment.objects.all()  # Fetch all comments
+        serializer = self.serializer_class(comments, many=True)  # Serialize the comments
+        return Response(serializer.data, status=status.HTTP_200_OK)  
+    
+    
+
 class CommentRetriveView(APIView):
     serializer_class = CommentDetailSerializer
+    permission_classes = [IsAuthenticated]
+    parser_classes = [MultiPartParser, FormParser, JSONParser]
     
-    def get(self, request, product_id, *args, **kwargs):
-        if not request.user.is_authenticated:
-            return Response({"detail": "User not authenticated"}, status=status.HTTP_401_UNAUTHORIZED)
+    def get(self, request, comment_id, *args, **kwargs):
+        try:
+            comment = Comment.objects.get(id=comment_id)
+        except Comment.DoesNotExist:
+            return Response({"detail": "Comment not found."}, status=status.HTTP_404_NOT_FOUND)
+        
+        serializer = self.serializer_class(comment)
+        return Response(serializer.data, status=status.HTTP_200_OK)
+    
+    def delete(self, request, comment_id, *args, **kwargs):
+        try:
+            comment = Comment.objects.get(id=comment_id)
+        except Comment.DoesNotExist:
+            return Response({"detail": "Comment not found."}, status=status.HTTP_404_NOT_FOUND)
 
+        if comment.user != request.user:
+            return Response({"detail": "You do not have permission to delete this comment."}, status=status.HTTP_403_FORBIDDEN)
+
+        comment.delete()
+        return Response({"detail": "Comment deleted successfully."}, status=status.HTTP_204_NO_CONTENT)
+
+    def patch(self, request, comment_id, *args, **kwargs):
+        try:
+            comment = Comment.objects.get(id=comment_id)
+        except Comment.DoesNotExist:
+            return Response({"detail": "Comment not found."}, status=status.HTTP_404_NOT_FOUND)
+
+        if comment.user != request.user:
+            return Response({"detail": "You do not have permission to edit this comment."}, status=status.HTTP_403_FORBIDDEN)
+
+        serializer = self.serializer_class(comment, data=request.data, partial=True)
+        if serializer.is_valid(raise_exception=True):
+            serializer.save()
+            return Response(serializer.data, status=status.HTTP_200_OK)
+
+
+
+class ProductCommentsView(APIView):
+    serializer_class = CommentDetailSerializer
+
+    def get(self, request, product_id, *args, **kwargs):
+        # Check if the product exists
         try:
             product = Product.objects.get(id=product_id)
         except Product.DoesNotExist:
             return Response({"detail": "Product not found."}, status=status.HTTP_404_NOT_FOUND)
 
+        # Retrieve all comments for the product
         comments = Comment.objects.filter(product=product)
         if not comments.exists():
             return Response({"detail": "No comments found for this product."}, status=status.HTTP_404_NOT_FOUND)
-        
+
+        # Serialize the comments
         serializer = self.serializer_class(comments, many=True)
         return Response(serializer.data, status=status.HTTP_200_OK)
-    
-    
-    def delete(self, request, *args, **kwargs):
-        if (not request.user.is_authenticated):
-            return Response("user not authenticated", status=status.HTTP_401_UNAUTHORIZED)
-        
-        email = request.user.email
-        user = User.objects.get(email=email)
-        serializer = self.serializer_class(data = request.data)
-        
-        serializer.is_valid(raise_exception=True)
-        
-        if user.check_password(serializer.validated_data.get('password')):
-            return Response("invalid password", status=status.HTTP_400_BAD_REQUEST)
-        
-        user.delete()
-        return Response("user deleted successfully", status=status.HTTP_200_OK)
 
-    parser_classes = [MultiPartParser, FormParser, JSONParser]
-    
-    def patch(self, request, *args, **kwargs):
+
+
+class SimilarProductsView(APIView):
+    serializer_class = ProductSerializer
+
+    def get(self, request, product_id, *args, **kwargs):
         try:
-            email = request.user.email
-            user = User.objects.get(email=email)
-            serializer = self.serializer_class(user, data = request.data, partial=True)
-        
-            if serializer.is_valid():
-                serializer.update(user, serializer.validated_data)
-                return Response(serializer.data, status=status.HTTP_200_OK)
-            else:
-                return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
-        
-        except User.DoesNotExist:
-            return Response("user not found", status=status.HTTP_404_NOT_FOUND)
+            # Fetch the product to get its category
+            product = Product.objects.get(id=product_id)
+        except Product.DoesNotExist:
+            return Response({"detail": "Product not found."}, status=status.HTTP_404_NOT_FOUND)
+
+        # Get up to 10 products in the same category, excluding the current product
+        similar_products = Product.objects.filter(category=product.category).exclude(id=product_id)[:10]
+
+        if not similar_products.exists():
+            return Response({"detail": "No similar products found."}, status=status.HTTP_404_NOT_FOUND)
+
+        # Serialize the similar products
+        serializer = self.serializer_class(similar_products, many=True)
+        return Response(serializer.data, status=status.HTTP_200_OK)
+
 
 
 
