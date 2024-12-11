@@ -30,6 +30,13 @@ urlpatterns = [
 
     path('products/filter/', ProductFilterAPIView.as_view(), name='product-filter'),
 
+    path('products/<int:product_pk>/images/<int:image_pk>/', 
+         ProductImageDeleteView.as_view(), 
+         name='product-image-delete'),
+    path('products/<int:product_pk>/images/<int:image_pk>/set-primary/', 
+         ProductImagePrimaryView.as_view(), 
+         name='product-image-set-primary'),
+
 
 ]
 

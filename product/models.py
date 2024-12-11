@@ -101,4 +101,4 @@ class ProductImage(models.Model):
                 product=self.product,
                 is_primary=True
             ).update(is_primary=False)
-            super().save(*args, **kwargs)
+        super().save(*args, **kwargs)
