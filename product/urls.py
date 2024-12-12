@@ -40,6 +40,13 @@ urlpatterns = [
     
     path('products/<int:product_id>/similar/', SimilarProductsView.as_view(), name='similar-products'),
 
+    path('products/<int:product_pk>/images/<int:image_pk>/', 
+         ProductImageDeleteView.as_view(), 
+         name='product-image-delete'),
+    path('products/<int:product_pk>/images/<int:image_pk>/set-primary/', 
+         ProductImagePrimaryView.as_view(), 
+         name='product-image-set-primary'),
+
 
 ]
 

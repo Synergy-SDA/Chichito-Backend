@@ -2,6 +2,13 @@ from rest_framework import serializers
 from .models import *
 from category.serializers import *
 
+class ProductImageSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = ProductImage
+        fields = ['id','image','is_primary','created_at']
+        extra_kwargs = {'image': {'required': False},
+                        'is_primary': {'required': False},
+                        }
 
 class FeatureSerializer(serializers.ModelSerializer):
     class Meta:     
@@ -44,7 +51,12 @@ class ProductSerializer(serializers.ModelSerializer):
         allow_null=True
     )
     category_details = CategoryDetailSerializer(source='category', read_only=True)
-
+    images = ProductImageSerializer(many=True, read_only=True)
+    uploaded_images = serializers.ListField(
+        child=serializers.ImageField(),
+        write_only=True,
+        required=False
+    )
     class Meta:
         model = Product
         fields = [
@@ -61,6 +73,8 @@ class ProductSerializer(serializers.ModelSerializer):
             'category',
             'category_details',
             'product_features',
+            'images',
+            'uploaded_images'
         ]
     def get_product_features(self, obj):
         return [
@@ -74,6 +88,7 @@ class ProductSerializer(serializers.ModelSerializer):
     def create(self, validated_data):
         features_data = validated_data.pop('features', [])
         category = validated_data.pop('category', None)
+        uploaded_images = validated_data.pop('uploaded_images', [])
 
        
     # Handle category creation or association
@@ -104,13 +119,22 @@ class ProductSerializer(serializers.ModelSerializer):
 
             # Add all feature values to the product in a single operation
             product.features.add(*feature_values)
+        
+        if uploaded_images:
+            ProductImage.objects.bulk_create([
+                ProductImage(
+                    product=product,
+                    image=image,
+                    is_primary=(i==0))
+                    for i, image in enumerate(uploaded_images)
+            ])  
 
         return product
 
     def update(self, instance, validated_data):
         features_data = validated_data.pop('features', [])
         category = validated_data.pop('category', None)
-
+        uploaded_images = validated_data.pop('uploaded_images', [])
         # Update basic product fields
         for attr, value in validated_data.items():
             setattr(instance, attr, value)
@@ -148,6 +172,27 @@ class ProductSerializer(serializers.ModelSerializer):
 
             # Add all feature values to the product
             instance.features.add(*feature_values)
+        # Handle image update - append new images without deleting existing ones
+        if uploaded_images:
+            # Determine the next primary status based on existing images
+            existing_primary = instance.images.filter(is_primary=True).exists()
+            
+            # Create new images
+            new_images = []
+            for i, image in enumerate(uploaded_images):
+                # Only set is_primary=True if no primary image exists and it's the first new image
+                is_primary = not existing_primary and i == 0
+                
+                new_images.append(
+                    ProductImage(
+                        product=instance, 
+                        image=image, 
+                        is_primary=is_primary
+                    )
+                )
+            
+            # Bulk create new images
+            ProductImage.objects.bulk_create(new_images)
 
         return instance
 

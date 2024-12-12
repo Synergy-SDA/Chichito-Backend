@@ -1,7 +1,7 @@
 from django.db import models
 from category.models import Category
 from user.models import *
-
+from django.utils.translation import gettext_lazy as _
 class Product(models.Model):
     name = models.CharField(max_length=255)
     description = models.TextField()
@@ -65,4 +65,41 @@ class Comment(models.Model):
     rate = models.IntegerField(choices=RatingChoices.choices)
 
     def __str__(self):
-        return f"{self.user.email} - {self.content[:20]}"  # Improved representation
+        return f"{self.user.email} - {self.content[:20]}"  
+
+class ProductImage(models.Model):
+    product = models.ForeignKey(
+        'Product',
+        related_name='images',
+        on_delete=models.CASCADE,
+        verbose_name=_('Product')
+        )
+    image = models.ImageField(
+        upload_to='product_images',
+        verbose_name=_('Product Image'),
+    )
+    is_primary = models.BooleanField(
+        default=False,
+        verbose_name=_('Primary Image')
+    )
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meat:
+        verbose_name = _('Product Image')
+        verbose_name_plural = _('Product Images')
+        ordering = ['-is_primary', '-created_at']
+    
+    def __str__(self):
+        return f"Image for {self.product.name} ({'Primary' if self.is_primary else 'Secondary'})"
+    
+    def save(self, *args, **kwargs):
+        # This method ensures that for a given product,
+        # only one image can be marked as the primary image (is_primary=True). 
+        # If a new image is set as the primary image, any previously marked primary image is updated 
+        # to is_primary=False
+        if self.is_primary:
+            ProductImage.objects.filter(
+                product=self.product,
+                is_primary=True
+            ).update(is_primary=False)
+        super().save(*args, **kwargs)

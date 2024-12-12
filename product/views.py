@@ -533,3 +533,79 @@ class SimilarProductsView(APIView):
         # Serialize the similar products
         serializer = self.serializer_class(similar_products, many=True)
         return Response(serializer.data, status=status.HTTP_200_OK)
+
+
+
+
+class ProductImageDeleteView(APIView):
+    def delete(self, request, product_pk, image_pk):
+
+        try:
+
+            product = Product.objects.get(pk=product_pk)
+            
+
+            image = product.images.get(pk=image_pk)
+            
+
+            if image.is_primary:
+                remaining_images = product.images.exclude(pk=image_pk)
+                if remaining_images.exists():
+                    
+                    remaining_images.first().is_primary = True
+                    remaining_images.first().save()
+            
+            
+            image.delete()
+            
+            return Response(
+                {"detail": "Image deleted successfully."}, 
+                status=status.HTTP_204_NO_CONTENT
+            )
+        
+        except Product.DoesNotExist:
+            return Response(
+                {"detail": "Product not found."}, 
+                status=status.HTTP_404_NOT_FOUND
+            )
+        
+        except ProductImage.DoesNotExist:
+            return Response(
+                {"detail": "Image not found."}, 
+                status=status.HTTP_404_NOT_FOUND
+            )
+
+
+class ProductImagePrimaryView(APIView):
+    def post(self, request, product_pk, image_pk):
+
+        try:
+            
+            product = Product.objects.get(pk=product_pk)
+            
+            
+            image = product.images.get(pk=image_pk)
+            
+            
+            product.images.update(is_primary=False)
+            
+            
+            image.is_primary = True
+            image.save()
+            
+            return Response(
+                {"detail": "Primary image updated successfully."}, 
+                status=status.HTTP_200_OK
+            )
+        
+        except Product.DoesNotExist:
+            return Response(
+                {"detail": "Product not found."}, 
+                status=status.HTTP_404_NOT_FOUND
+            )
+        
+        except ProductImage.DoesNotExist:
+            return Response(
+                {"detail": "Image not found."}, 
+                status=status.HTTP_404_NOT_FOUND
+            )
