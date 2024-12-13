@@ -47,6 +47,9 @@ urlpatterns = [
          ProductImagePrimaryView.as_view(), 
          name='product-image-set-primary'),
 
+    path('favorites/', FavoriteAPI.as_view(), name='favorite-list'),
+    path('favorites/toggle/', FavoriteToggleAPIView.as_view(), name='favorite-toggle'),    
+
 
 ]
 
