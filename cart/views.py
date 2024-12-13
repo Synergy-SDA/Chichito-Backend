@@ -9,7 +9,7 @@ from .serializers import CartSerializer, CartItemSerializer
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated
-from .models import GiftWrap
+from .models import GiftWrap,CartItem
 from .serializers import GiftWrapSerializer
 from drf_spectacular.utils import extend_schema, OpenApiParameter
 
@@ -83,32 +83,68 @@ class CartAPIView(APIView):
             return Response(serializer.data)
         except ValidationError as e:
             return Response({'error': str(e)}, status=status.HTTP_400_BAD_REQUEST)
+    
 
+
+class CartRetriveAPI(APIView):
+    permission_classes = [IsAuthenticated]
+    def get(self, request,cart_id):
+        try:
+            cart_items = CartService.get_user_cartitem(cart_id)
+            serializer = CartItemSerializer(cart_items)
+            total_cart_value = cart_items.total_price()
+            return Response({
+                'cart_items': serializer.data,
+                'total_cart_value': total_cart_value
+            }, status=status.HTTP_200_OK)
+        
+        except Exception as e:
+            return Response({
+                'error': str(e)
+            }, status=status.HTTP_400_BAD_REQUEST)
+
+class CartRetriveALLAPI(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request):
+        try:
+
+            cart = CartService.get_or_create_cart(request.user)
+            
+
+            cart_items = CartItem.objects.filter(cart=cart)
+            serializer = CartItemSerializer(cart_items, many=True)
+            total_cart_value = sum(item.total_price() for item in cart_items)
+            return Response({
+                'cart_items': serializer.data,
+                'total_cart_value': total_cart_value
+            }, status=status.HTTP_200_OK)
+        
+        except Exception as e:
+            return Response({
+                'error': str(e)
+            }, status=status.HTTP_400_BAD_REQUEST)
+
+class CartDeleteAPI(APIView):
+    permission_classes = [IsAuthenticated]
+    def delete(self, request,cart_id, *args, **kwargs):
+        
+        CartService.remove_item(cart_id)
+        return Response(status=status.HTTP_204_NO_CONTENT)
 
 class GiftWrapAPIView(APIView):
     permission_classes = [IsAuthenticated]
-
+    serialzer_class = [GiftWrapSerializer]
     @extend_schema(
-        summary="Retrieve list of gift wraps",
-        description="Returns a list of all available gift wraps.",
-        responses={
-            200: GiftWrapSerializer(many=True),
-        },
-    )
-    def get(self, request, *args, **kwargs):
-        gift_wraps = GiftWrap.objects.all()
-        serializer = GiftWrapSerializer(gift_wraps, many=True)
-        return Response(serializer.data)
-
-    @extend_schema(
-        summary="Create a new gift wrap",
-        description="Creates a new gift wrap by providing necessary details such as name, description, and price.",
+        summary="Create New gift wrap",
         request=GiftWrapSerializer,
         responses={
-            201: GiftWrapSerializer,
+            200: GiftWrapSerializer,
             400: "Validation Error",
-        },
+        }
+
     )
+
     def post(self, request, *args, **kwargs):
         serializer = GiftWrapSerializer(data=request.data)
         if serializer.is_valid():
@@ -124,10 +160,8 @@ class GiftWrapAPIView(APIView):
             200: GiftWrapSerializer,
             400: "Validation Error",
             404: "Gift wrap not found",
-        },
-        parameters=[
-            OpenApiParameter("pk", int, description="ID of the gift wrap to update", required=True)
-        ]
+        }
+
     )
     def put(self, request, *args, **kwargs):
         gift_wrap = GiftWrap.objects.filter(id=kwargs['pk']).first()
@@ -147,10 +181,7 @@ class GiftWrapAPIView(APIView):
             204: "Gift wrap deleted successfully.",
             400: "Validation Error",
             404: "Gift wrap not found",
-        },
-        parameters=[
-            OpenApiParameter("pk", int, description="ID of the gift wrap to delete", required=True)
-        ]
+        }
     )
     def delete(self, request, *args, **kwargs):
         gift_wrap = GiftWrap.objects.filter(id=kwargs['pk']).first()
@@ -158,4 +189,21 @@ class GiftWrapAPIView(APIView):
             gift_wrap.delete()
             return Response({"message": "Gift wrap deleted successfully."}, status=status.HTTP_204_NO_CONTENT)
         raise ValidationError("Gift wrap not found.")
+
+
+class GiftWrapRetriveAPI(APIView):
+    @extend_schema(
+        summary="Retrieve list of gift wraps",
+        description="Returns a list of all available gift wraps.",
+        responses={
+            200: GiftWrapSerializer(many=True),
+        },
+    )
+    def get(self, request, *args, **kwargs):
+        gift_wraps = GiftWrap.objects.all()
+        serializer = GiftWrapSerializer(gift_wraps, many=True)
+        return Response(serializer.data)
+
+
+
 

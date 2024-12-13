@@ -21,12 +21,7 @@ from .models import *
 
 
 
-# EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
-# EMAIL_HOST="smtp.gmail.com"
-# EMAIL_PORT=587
-# EMAIL_HOST_USER="noreply.chichito.ir@gmail.com"
-# EMAIL_HOST_PASSWORD="hwgc fqfv yybl clbh"
-# EMAIL_USE_TLS=True
+
 
 
 
@@ -180,7 +175,9 @@ class UserDeleteSerializer(serializers.ModelSerializer):
 class UserUpdateSerializer(serializers.ModelSerializer):
     class Meta:
         model = User
-        fields = ['profile_image']
+        fields = ['id', 'username', 'first_name', 'last_name', 'phone_number', 'email', 
+                  'profile_image', 'birth_date', 'address', 'sex', 'date_joined', 'last_login']
+        read_only_fields = ['id']
         
         def update(self, instance, validated_data):
             profile_image = validated_data.get('profile_image', instance.profile_image)
