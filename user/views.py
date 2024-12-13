@@ -5,11 +5,12 @@ from rest_framework.response import Response
 from rest_framework import status
 from rest_framework.parsers import MultiPartParser, FormParser, JSONParser
 from rest_framework.permissions import IsAuthenticated
-
+from django.core.exceptions import ValidationError as DjangoValidationError
 from .utility import send_otp_email
 from .serializers import *
 from .models import *
-
+from .permissions import IsOwnerOrReadOnly
+from django.contrib.auth import logout
 
 class RegisterUserView(APIView):
     serializer_class = UserCreateSerializer
@@ -96,45 +97,88 @@ class UserRetriveView(APIView):
         return Response(serializer.data, status=status.HTTP_200_OK)
     
 
-class UserDeleteView(APIView):
-    serializer_class= UserDeleteSerializer
-    
-    def delete(self, request, *args, **kwargs):
-        if (not request.user.is_authenticated):
-            return Response("user not authenticated", status=status.HTTP_401_UNAUTHORIZED)
-        
-        email = request.user.email
-        user = User.objects.get(email=email)
-        serializer = self.serializer_class(data = request.data)
-        
-        serializer.is_valid(raise_exception=True)
-        
-        if user.check_password(serializer.validated_data.get('password')):
-            return Response("invalid password", status=status.HTTP_400_BAD_REQUEST)
-        
-        user.delete()
-        return Response("user deleted successfully", status=status.HTTP_200_OK)
-
-        
-
-class UserUpdateView(APIView):
+class UserDetailView(APIView):
     serializer_class= UserUpdateSerializer
     parser_classes = [MultiPartParser, FormParser, JSONParser]
+    permission_classes = [IsAuthenticated,IsOwnerOrReadOnly]
+
+    def get(self,request):
+
+        serializer = self.serializer_class(request.user)
+        return Response(serializer.data, status=status.HTTP_200_OK)
     
-    def patch(self, request, *args, **kwargs):
+    def put(self, request):
+        serializer = self.serializer_class(request.user, data=request.data, partial=False)
+        
         try:
             email = request.user.email
             user = User.objects.get(email=email)
             serializer = self.serializer_class(user, data = request.data, partial=True)
         
-            if serializer.is_valid():
-                serializer.update(user, serializer.validated_data)
+            if serializer.is_valid(raise_exception=True):
+                serializer.save()
                 return Response(serializer.data, status=status.HTTP_200_OK)
-            else:
-                return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+        except serializers.ValidationError as e:
         
-        except User.DoesNotExist:
-            return Response("user not found", status=status.HTTP_404_NOT_FOUND)
+            return Response({
+                'error': 'Validation Failed',
+                'details': e.detail
+            }, status=status.HTTP_400_BAD_REQUEST)
+        except DjangoValidationError as e:
+           
+            return Response({
+                'error': 'Validation Failed',
+                'details': str(e)
+            }, status=status.HTTP_400_BAD_REQUEST)
+    def patch(self, request):
+            """
+            Partially update user details
+            """
+            serializer = self.serializer_class(
+                request.user, 
+                data=request.data, 
+                partial=True
+            )
+            
+            try:
+                
+                if serializer.is_valid(raise_exception=True):
+                   
+                    serializer.save()
+                    return Response(serializer.data, status=status.HTTP_200_OK)
+            except serializers.ValidationError as e:
+
+                return Response({
+                    'error': 'Validation Failed',
+                    'details': e.detail
+                }, status=status.HTTP_400_BAD_REQUEST)
+            except DjangoValidationError as e:
+                
+                return Response({
+                    'error': 'Validation Failed',
+                    'details': str(e)
+                }, status=status.HTTP_400_BAD_REQUEST)
+    def delete(self, request):
+
+            try:
+
+                user = request.user
+                
+
+                logout(request)
+                
+                user.delete()
+                
+                return Response({
+                    'message': 'User account has been successfully deleted.'
+                }, status=status.HTTP_200_OK)
+            
+            except Exception as e:
+                
+                return Response({
+                    'error': 'Account deletion failed',
+                    'details': str(e)
+                }, status=status.HTTP_400_BAD_REQUEST)
         
 class WalletDetailView(APIView):
     permission_classes = [IsAuthenticated]
