@@ -236,6 +236,21 @@ class CommentDetailSerializer(serializers.ModelSerializer):
         # Save the updated instance
         instance.save()
         return instance
+    
+class FavoriteSerializer(serializers.Serializer):
+
+    product_id = serializers.IntegerField()
+
+    def validate_product_id(self, value):
+
+        try:
+            Product.objects.get(id=value)
+            return value
+        except Product.DoesNotExist:
+            raise serializers.ValidationError("Product does not exist")
+    
+
+
         
 
 
