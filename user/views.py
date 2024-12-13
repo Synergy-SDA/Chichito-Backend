@@ -101,6 +101,7 @@ class UserDetailView(APIView):
     serializer_class= UserUpdateSerializer
     parser_classes = [MultiPartParser, FormParser, JSONParser]
     permission_classes = [IsAuthenticated,IsOwnerOrReadOnly]
+    
 
     def get(self,request):
 
