@@ -29,7 +29,7 @@ class CartSerializer(serializers.ModelSerializer):
 class GiftWrapSerializer(serializers.ModelSerializer):
     class Meta:
         model = GiftWrap
-        fields = ['id', 'name', 'description', 'price']
+        fields = ['id', 'name', 'price']
 
 
 

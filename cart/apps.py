@@ -8,4 +8,4 @@ class YourAppConfig(AppConfig):
     name = 'cart'
 
     def ready(self):
-        import cart.signal # Ensure signals are loaded
+        import cart.signal 
