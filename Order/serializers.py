@@ -6,14 +6,14 @@ from rest_framework import serializers
 from .models import Order, OrderItem
 from cart.models import Cart
 from django.utils.timezone import now
-
+from product.serializers import ProductImageSerializer
 
 class OrderItemSerializer(serializers.ModelSerializer):
     product_name = serializers.ReadOnlyField(source='product.name')
-
+    images = ProductImageSerializer(source="product.images", many=True, read_only=True) 
     class Meta:
         model = OrderItem
-        fields = ['id', 'product', 'product_name', 'quantity', 'price', 'total_price']
+        fields = ['id', 'product', 'product_name','images', 'quantity', 'price', 'total_price']
         read_only_fields = ['id', 'price', 'total_price']
 
 
