@@ -24,7 +24,7 @@ class Order(models.Model):
         CANCELED = 'CANCELED', 'Canceled'
 
     user = models.ForeignKey(User, on_delete=models.CASCADE, related_name="orders")
-    cart = models.OneToOneField(Cart, on_delete=models.SET_NULL, null=True, blank=True, related_name="order")
+    cart = models.ForeignKey(Cart, on_delete=models.SET_NULL, null=True, blank=True, related_name="order")
     status = models.CharField(
         max_length=20,
         choices=StatusChoices.choices,  

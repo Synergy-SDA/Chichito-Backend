@@ -1,15 +1,17 @@
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework import status
+from Order.permissions import IsAdminUser
 from user import permissions
 from .serializers import AdminOrderStatusUpdateSerializer, OrderSerializer, CreateOrderSerializer, PaymentSerializer
 from Order import serializers
 from django.core.exceptions import ValidationError
 from rest_framework import permissions
-from drf_spectacular.utils import extend_schema
+from drf_spectacular.utils import extend_schema , OpenApiExample , OpenApiParameter
 from rest_framework.permissions import IsAuthenticated
 from .models import Order
 from rest_framework.pagination import PageNumberPagination
+from django.db.models import Q
 
 
 
@@ -129,39 +131,91 @@ class WalletPaymentAPIView(APIView):
 
 
 
-class IsAdminUser(permissions.BasePermission):
-    permission_classes = [IsAuthenticated]
 
-    def has_permission(self, request, view):
-        return request.user and request.user.is_staff
+
+
 
 class AdminOrderStatusUpdateView(APIView):
     permission_classes = [IsAdminUser]
-    
+
     @extend_schema(
         summary="Update Order Status",
-        description="Allows admin users to update the status of an order.",
-        request=AdminOrderStatusUpdateSerializer,
+        description="Allows an admin to update the status of an order using query parameters.",
+        parameters=[
+            OpenApiParameter(
+                name="order_id",
+                description="The ID of the order to update.",
+                required=True,
+                type=int,
+                location=OpenApiParameter.QUERY,
+            ),
+            OpenApiParameter(
+                name="new_status",
+                description=(
+                    "The new status to set for the order. "
+                    "Valid values are PENDING, PROCESSING, COMPLETED, CANCELED."
+                ),
+                required=True,
+                type=str,
+                location=OpenApiParameter.QUERY,
+                enum=[
+                    Order.StatusChoices.PENDING,
+                    Order.StatusChoices.PROCESSING,
+                    Order.StatusChoices.COMPLETED,
+                    Order.StatusChoices.CANCELED,
+                ],
+            ),
+        ],
         responses={
-            200: {
-                "type": "object",
-                "properties": {
-                    "message": {"type": "string"},
-                    "order_id": {"type": "integer"},
-                }
-            },
-            400: "Validation Error"
-        }
+            200: OpenApiExample(
+                "Success",
+                value={"message": "Order status updated to 'COMPLETED'.", "order_id": 1},
+            ),
+            400: OpenApiExample(
+                "Validation Error",
+                value={"error": "Order not found."},
+            ),
+        },
     )
-    def post(self, request, *args, **kwargs):
-        serializer = AdminOrderStatusUpdateSerializer(data=request.data)
-        if serializer.is_valid():
-            try:
-                result = serializer.update_status(serializer.validated_data)
-                return Response(result, status=status.HTTP_200_OK)
-            except serializers.ValidationError as e:
-                return Response({"error": str(e)}, status=status.HTTP_400_BAD_REQUEST)
-        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+    def put(self, request, *args, **kwargs):
+        order_id = request.query_params.get("order_id")
+        new_status = request.query_params.get("new_status")
+
+        if not order_id or not new_status:
+            return Response(
+                {"error": "Both 'order_id' and 'new_status' query parameters are required."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        try:
+            order = Order.objects.get(id=order_id)
+        except Order.DoesNotExist:
+            return Response({"error": "Order not found."}, status=status.HTTP_404_NOT_FOUND)
+
+        if order.status == new_status:
+            return Response(
+                {"error": f"The order is already in the status '{new_status}'."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        if new_status not in [
+            Order.StatusChoices.PENDING,
+            Order.StatusChoices.PROCESSING,
+            Order.StatusChoices.COMPLETED,
+            Order.StatusChoices.CANCELED,
+        ]:
+            return Response(
+                {"error": "Invalid status provided."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        order.status = new_status
+        order.save()
+        return Response(
+            {"message": f"Order status updated to '{new_status}'.", "order_id": order.id},
+            status=status.HTTP_200_OK,
+        )
+
 
 
 class UserOrderHistoryAPIView(APIView):
@@ -174,7 +228,11 @@ class UserOrderHistoryAPIView(APIView):
         },
     )
     def get(self, request):
-        orders = Order.objects.filter(user=request.user).order_by('-created_at')
+        orders = Order.objects.filter(
+        Q(status=Order.StatusChoices.COMPLETED) | Q(status=Order.StatusChoices.CANCELED),
+        user=request.user
+        ).order_by('-created_at')
+      
 
         paginator = PageNumberPagination()
         paginator.page_size = 10 

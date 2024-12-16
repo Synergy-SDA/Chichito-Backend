@@ -70,12 +70,12 @@ class CreateOrderSerializer(serializers.Serializer):
 
         # Calculate the total price of the order
         order.calculate_total_price()
-
+        print("swswsw")
         # Clear the cart by removing all items (instead of deleting the cart)
         cart.items.all().delete()
 
         # After the order, create a new cart for the user (to ensure cart availability for next order)
-        new_cart = Cart.objects.create(user=user)
+        # new_cart = Cart.objects.create(user=user)
 
         return order
 
@@ -145,9 +145,10 @@ class AdminOrderStatusUpdateSerializer(serializers.Serializer):
     def update_status(self, validated_data):
         order_id = validated_data['order_id']
         new_status = validated_data['new_status']
-
+        print("u")
         try:
             order = Order.objects.get(id=order_id)
+            print("ko")
         except Order.DoesNotExist:
             raise serializers.ValidationError("Order not found.")
 
@@ -155,6 +156,7 @@ class AdminOrderStatusUpdateSerializer(serializers.Serializer):
             raise serializers.ValidationError(f"The order is already in the status '{new_status}'.")
 
         order.status = new_status
+        print("e")
         order.save()
         return {"message": f"Order status updated to '{new_status}'.", "order_id": order.id}
 
