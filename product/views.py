@@ -13,8 +13,7 @@ import json
 from rest_framework.views import APIView
 from rest_framework.parsers import MultiPartParser, FormParser, JSONParser
 from rest_framework.permissions import IsAuthenticated
-
-
+from .services import FavoritService
 
 
 class CustomPagination(PageNumberPagination):
@@ -609,3 +608,165 @@ class ProductImagePrimaryView(APIView):
                 {"detail": "Image not found."}, 
                 status=status.HTTP_404_NOT_FOUND
             )
+class FavoriteAPI(APIView):
+    permission_classes = [IsAuthenticated]
+    serializer_class = FavoriteSerializer
+    parser_classes = [MultiPartParser, FormParser, JSONParser]
+    def get(self, requset):
+
+        try:
+
+            favorite_service = FavoritService(requset.user)
+            favorites = favorite_service.get_favorites()
+
+            serializer = ProductSerializer(
+                [fav.product for fav in favorites],
+                many=True,
+                context={'request':requset}
+            )
+            return Response({
+                'count': len(serializer.data),
+                'favorites': serializer.data
+            })
+        
+        except Exception as e:
+            return Response(
+                {'detail': str(e)}, 
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR
+            )
+    
+    def post(self, request):
+
+        try:
+            serializer = self.serializer_class(data=request.data)
+            if not serializer.is_valid() :
+                return Response(
+                    serializer.errors,
+                    status=status.HTTP_400_BAD_REQUEST
+                )
+            product_id = serializer.validated_data.get('product_id')
+            try:
+            
+                product = Product.objects.get(id=product_id)
+            except Product.DoesNotExist:
+                return Response(
+                    {'detail':'Product not found'},
+                    status=status.HTTP_400_BAD_REQUEST
+                )
+
+            favorite_service = FavoritService(request.user)
+
+            try:
+                favorite = favorite_service.add_to_favorites(product)
+
+                return Response(
+                    ProductSerializer(product, context={'request': request}).data,
+                    status=status.HTTP_201_CREATED
+                )
+            except ValidationError as ve:
+                return Response(
+                    {'detail':str(ve)},
+                    status=status.HTTP_400_BAD_REQUEST
+                )
+        
+
+        except Exception as e:
+            return Response(
+                {'detail':str(e)},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR
+            )
+    @extend_schema(
+        description="Delete a product from favorites.",
+        parameters=[
+            OpenApiParameter(
+                name='product_id',  # Name of the parameter
+                type=int,            # Type of the parameter (e.g., integer)
+                location=OpenApiParameter.QUERY,  # Location in query parameters
+                description="ID of the product to remove from favorites."
+            ),
+        ]
+    )
+    def delete(self, request):
+
+        try:
+            product_id = request.query_params.get('product_id')
+
+            if not product_id:
+                return Response(
+                    {'detail': 'Product ID is required'},
+                    status=status.HTTP_400_BAD_REQUEST
+                )
+
+            try:
+                product = Product.objects.get(id=product_id)
+            except Product.DoesNotExist:
+                return Response(
+                    {'detail': 'Product not found'}, 
+                    status=status.HTTP_404_NOT_FOUND
+                )
+
+            favorite_service = FavoritService(request.user)
+            
+            removed = favorite_service.remove_from_favorites(product)
+            
+            if removed:
+                return Response(
+                    {'detail': 'Product removed from favorites'}, 
+                    status=status.HTTP_204_NO_CONTENT
+                )
+            
+            return Response(
+                {'detail': 'Product not in favorites'}, 
+                status=status.HTTP_404_NOT_FOUND
+            )
+        
+        except Exception as e:
+            return Response(
+                {'detail': str(e)}, 
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR
+            ) 
+
+class FavoriteToggleAPIView(APIView):
+    serializer_class = FavoriteSerializer
+    permission_classes = [IsAuthenticated]
+    parser_classes = [MultiPartParser, FormParser, JSONParser]
+    def post(self, request):
+
+        try:
+            
+            serializer = self.serializer_class(data=request.data)
+            if not serializer.is_valid():
+                return Response(
+                    serializer.errors, 
+                    status=status.HTTP_400_BAD_REQUEST
+                )
+
+            
+            product_id = serializer.validated_data.get('product_id')
+            try:
+                product = Product.objects.get(id=product_id)
+            except Product.DoesNotExist:
+                return Response(
+                    {'detail': 'Product not found'}, 
+                    status=status.HTTP_404_NOT_FOUND
+                )
+
+            
+            favorite_service = FavoritService(request.user)
+            
+            
+            is_now_favorite = favorite_service.toggle_favorite(product)
+            
+            return Response({
+                'product': ProductSerializer(product, context={'request': request}).data,
+                'is_favorite': is_now_favorite
+            })
+        
+        except Exception as e:
+            return Response(
+                {'detail': str(e)}, 
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR
+            )
+
+
+

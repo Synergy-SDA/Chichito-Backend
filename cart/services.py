@@ -1,15 +1,19 @@
 from .models import Cart, CartItem, GiftWrap
 from product.models import Product
 from django.core.exceptions import ValidationError
-
+from django.shortcuts import get_object_or_404
 class CartService:
     @staticmethod
     def get_or_create_cart(user):
         cart, created = Cart.objects.get_or_create(user=user)
         return cart
-
+    
+    @staticmethod
+    def get_user_cartitem(cart_id):
+        return CartItem.objects.filter(id=cart_id).first()
     @staticmethod
     def add_item(cart, product_id, quantity, gift_wrap_id=None, gift_wrap_message=None):
+        
         product = Product.objects.filter(id=product_id, is_available=True).first()
 
         if not product:
@@ -34,7 +38,7 @@ class CartService:
 
     @staticmethod
     def update_item(cart, product_id, quantity, gift_wrap_id=None, gift_wrap_message=None):
-        cart_item = CartItem.objects.filter(cart=cart, product_id=product_id).first()
+        cart_item = get_object_or_404(CartItem, cart=cart)
         if not cart_item:
             raise ValidationError("Item not in cart.")
         if quantity > cart_item.product.count_exist:
@@ -50,11 +54,12 @@ class CartService:
         if gift_wrap_message:
             cart_item.gift_wrap_message = gift_wrap_message
 
+        
         cart_item.save()
         return cart_item
 
     @staticmethod
-    def remove_item(cart, product_id):
-        cart_item = CartItem.objects.filter(cart=cart, product_id=product_id).first()
+    def remove_item(cart):
+        cart_item = CartItem.objects.filter(id=cart).first()
         if cart_item:
             cart_item.delete()
