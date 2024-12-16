@@ -1,7 +1,13 @@
+from urllib import response
+
 from .models import Cart, CartItem, GiftWrap
 from product.models import Product
 from django.core.exceptions import ValidationError
 from django.shortcuts import get_object_or_404
+from rest_framework import status
+from rest_framework import serializers
+
+
 class CartService:
     @staticmethod
     def get_or_create_cart(user):
@@ -11,30 +17,39 @@ class CartService:
     @staticmethod
     def get_user_cartitem(cart_id):
         return CartItem.objects.filter(id=cart_id).first()
+
     @staticmethod
     def add_item(cart, product_id, quantity, gift_wrap_id=None, gift_wrap_message=None):
+        try:
+            print("dali")
+            product = Product.objects.filter(id=product_id, is_available=True).first()
+            if not product:
+                print("moshe")
+                raise serializers.ValidationError({"error": "Product not available."})
+            
+            if quantity > product.count_exist:
+                raise ValidationError({"error": "Not enough stock available."})
+
+            gift_wrap = None
+            if gift_wrap_id:
+                gift_wrap = GiftWrap.objects.filter(id=gift_wrap_id).first()
+                if not gift_wrap:
+                    raise ValidationError({"error": "Invalid gift wrap selected."})
+
+            cart_item, created = CartItem.objects.get_or_create(cart=cart, product=product)
+            if not created:
+                cart_item.quantity += quantity
+
+            cart_item.gift_wrap = gift_wrap
+            cart_item.gift_wrap_message = gift_wrap_message
+            print("nai inja ")
+            cart_item.save()
+            return cart_item
         
-        product = Product.objects.filter(id=product_id, is_available=True).first()
+        except serializers.ValidationError as e:
+            raise e
+            
 
-        if not product:
-            raise ValidationError("Product not available.")
-        if quantity > product.count_exist:
-            raise ValidationError("Not enough stock available.")
-
-        gift_wrap = None
-        if gift_wrap_id:
-            gift_wrap = GiftWrap.objects.filter(id=gift_wrap_id).first()
-            if not gift_wrap:
-                raise ValidationError("Invalid gift wrap selected.")
-
-        cart_item, created = CartItem.objects.get_or_create(cart=cart, product=product)
-        if not created:
-            cart_item.quantity += quantity
-
-        cart_item.gift_wrap = gift_wrap
-        cart_item.gift_wrap_message = gift_wrap_message
-        cart_item.save()
-        return cart_item
 
     @staticmethod
     def update_item(cart, product_id, quantity, gift_wrap_id=None, gift_wrap_message=None):

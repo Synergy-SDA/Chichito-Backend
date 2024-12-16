@@ -12,6 +12,8 @@ from rest_framework.permissions import IsAuthenticated
 from .models import GiftWrap,CartItem
 from .serializers import GiftWrapSerializer
 from drf_spectacular.utils import extend_schema, OpenApiParameter
+from rest_framework import status
+
 
 class CartAPIView(APIView):
     permission_classes = [IsAuthenticated]
@@ -45,6 +47,7 @@ class CartAPIView(APIView):
 
         try:
             cart_item = CartService.add_item(cart, product_id, quantity, gift_wrap_id, gift_wrap_message)
+            print("ba")
             serializer = CartItemSerializer(cart_item)
             return Response(serializer.data, status=status.HTTP_201_CREATED)
         except ValidationError as e:
@@ -111,7 +114,6 @@ class CartRetriveALLAPI(APIView):
 
             cart = CartService.get_or_create_cart(request.user)
             
-
             cart_items = CartItem.objects.filter(cart=cart)
             serializer = CartItemSerializer(cart_items, many=True)
             total_cart_value = sum(item.total_price() for item in cart_items)

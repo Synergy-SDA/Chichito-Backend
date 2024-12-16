@@ -1,5 +1,6 @@
 from rest_framework import serializers
 from django.db import transaction
+from cart.services import CartService
 from user.models import Wallet
 from .models import Order, OrderItem
 from rest_framework import serializers
@@ -28,16 +29,15 @@ class OrderSerializer(serializers.ModelSerializer):
         read_only_fields = ['id', 'total_price', 'created_at', 'updated_at']
 
 
-
 class CreateOrderSerializer(serializers.Serializer):
     """
     Serializer for creating an order from the user's shopping cart.
     """
     def validate(self, data):
         user = self.context['request'].user
-        try:
-            cart = Cart.objects.filter(user=user).last() # Assume user has a one-to-one relationship with Cart
-        except Cart.DoesNotExist:
+        cart = Cart.objects.filter(user=user).last()  # Get the most recent cart
+
+        if not cart:
             raise serializers.ValidationError("No shopping cart found for this user.")
 
         if not cart.items.exists():
@@ -53,10 +53,9 @@ class CreateOrderSerializer(serializers.Serializer):
         user = self.context['request'].user
 
         # Create the order
-        print("K")
-        print(cart)
+        print("kos")
         order = Order.objects.create(user=user, cart=cart)
-        print("ir")
+        print("kir")
 
         # Move cart items to order items
         for item in cart.items.all():
@@ -72,11 +71,13 @@ class CreateOrderSerializer(serializers.Serializer):
         # Calculate the total price of the order
         order.calculate_total_price()
 
-        # Clear the cart
+        # Clear the cart by removing all items (instead of deleting the cart)
         cart.items.all().delete()
 
-        return order
+        # After the order, create a new cart for the user (to ensure cart availability for next order)
+        new_cart = Cart.objects.create(user=user)
 
+        return order
 
 
 
@@ -156,3 +157,7 @@ class AdminOrderStatusUpdateSerializer(serializers.Serializer):
         order.status = new_status
         order.save()
         return {"message": f"Order status updated to '{new_status}'.", "order_id": order.id}
+
+
+
+

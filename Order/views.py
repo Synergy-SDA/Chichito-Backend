@@ -9,6 +9,8 @@ from rest_framework import permissions
 from drf_spectacular.utils import extend_schema
 from rest_framework.permissions import IsAuthenticated
 from .models import Order
+from rest_framework.pagination import PageNumberPagination
+
 
 
 
@@ -160,3 +162,24 @@ class AdminOrderStatusUpdateView(APIView):
             except serializers.ValidationError as e:
                 return Response({"error": str(e)}, status=status.HTTP_400_BAD_REQUEST)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+
+class UserOrderHistoryAPIView(APIView):
+    permission_classes = [IsAuthenticated]
+    @extend_schema(
+        summary="Get User Order History",
+        description="Retrieve a paginated list of the authenticated user's order history.",
+        responses={
+            200: OrderSerializer(many=True),
+        },
+    )
+    def get(self, request):
+        orders = Order.objects.filter(user=request.user).order_by('-created_at')
+
+        paginator = PageNumberPagination()
+        paginator.page_size = 10 
+        paginated_orders = paginator.paginate_queryset(orders, request)
+
+        serializer = OrderSerializer(paginated_orders, many=True)
+
+        return paginator.get_paginated_response(serializer.data)
