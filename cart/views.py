@@ -62,8 +62,6 @@ class CartAPIView(APIView):
                 "properties": {
                     "product_id": {"type": "integer", "description": "ID of the product"},
                     "quantity": {"type": "integer", "description": "New quantity for the product", "example": 2},
-                    "gift_wrap_id": {"type": "integer", "description": "ID of the selected gift wrap (optional)"},
-                    "gift_wrap_message": {"type": "string", "description": "Personalized message for the gift wrap (optional)", "example": "Happy Birthday!"}
                 },
                 "required": ["product_id", "quantity"],
             }
@@ -77,11 +75,11 @@ class CartAPIView(APIView):
         cart = CartService.get_or_create_cart(request.user)
         product_id = request.data.get('product_id')
         quantity = request.data.get('quantity')
-        gift_wrap_id = request.data.get('gift_wrap_id')
-        gift_wrap_message = request.data.get('gift_wrap_message')
+        # gift_wrap_id = request.data.get('gift_wrap_id')
+        # gift_wrap_message = request.data.get('gift_wrap_message')
 
         try:
-            cart_item = CartService.update_item(cart, product_id, quantity, gift_wrap_id, gift_wrap_message)
+            cart_item = CartService.update_item(cart, product_id, quantity)
             serializer = CartItemSerializer(cart_item)
             return Response(serializer.data)
         except ValidationError as e:
