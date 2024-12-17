@@ -14,7 +14,7 @@ from rest_framework.views import APIView
 from rest_framework.parsers import MultiPartParser, FormParser, JSONParser
 from rest_framework.permissions import IsAuthenticated
 from .services import FavoritService
-
+from .permissions import IsAdminOrReadOnly
 
 class CustomPagination(PageNumberPagination):
     page_size = 10
@@ -31,6 +31,7 @@ class ProductListAPIView(APIView):
 
 class ProductAPIView(APIView):
     parser_classes = [MultiPartParser, FormParser, JSONParser]
+    permission_classes = [IsAdminOrReadOnly]
     @extend_schema(
         request=ProductSerializer,
         responses=ProductSerializer,
