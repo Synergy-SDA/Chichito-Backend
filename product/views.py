@@ -113,6 +113,7 @@ class FeatureListAPIView(APIView):
         serializer = FeatureSerializer(features, many=True)
         return Response(serializer.data, status=status.HTTP_200_OK)
 class FeatureAPIView(APIView):
+    permission_classes = [IsAdminOrReadOnly]
     @extend_schema(
         request=FeatureSerializer,
         responses=FeatureSerializer,
@@ -182,6 +183,7 @@ class FeatureValueListAPIView(APIView):
         return Response(serializer.data, status=status.HTTP_200_OK)
 
 class FeatureValueAPIView(APIView):
+    permission_classes = [IsAdminOrReadOnly]
     @extend_schema(
         request=FeatureValueSerializer,
         responses=FeatureValueSerializer,
@@ -538,6 +540,7 @@ class SimilarProductsView(APIView):
 
 
 class ProductImageDeleteView(APIView):
+    permission_classes = [IsAdminOrReadOnly]
     def delete(self, request, product_pk, image_pk):
 
         try:
@@ -577,6 +580,7 @@ class ProductImageDeleteView(APIView):
 
 
 class ProductImagePrimaryView(APIView):
+    permission_classes = [IsAdminOrReadOnly]
     def post(self, request, product_pk, image_pk):
 
         try:
