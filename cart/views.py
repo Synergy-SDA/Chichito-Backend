@@ -88,10 +88,13 @@ class CartAPIView(APIView):
         quantity = request.data.get('quantity')
         # gift_wrap_id = request.data.get('gift_wrap_id')
         # gift_wrap_message = request.data.get('gift_wrap_message')
+        print("dadashi?")
 
         try:
             cart_item = CartService.update_item(cart, product_id, quantity)
+            print("joon")
             serializer = CartItemSerializer(cart_item)
+            print("khikhikhi")
             return Response(serializer.data)
         except ValidationError as e:
             return Response({'error': str(e)}, status=status.HTTP_400_BAD_REQUEST)

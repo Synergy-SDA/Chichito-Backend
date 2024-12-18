@@ -51,7 +51,11 @@ class CartService:
 
     @staticmethod
     def update_item(cart, product_id, quantity, gift_wrap_id=None, gift_wrap_message=None):
-        cart_item = get_object_or_404(CartItem, cart=cart)
+        print("va")
+        print(cart)
+        print(product_id)
+        cart_item = get_object_or_404(CartItem, cart=cart ,id = product_id)
+        print(cart_item)
         if not cart_item:
             raise ValidationError("Item not in cart.")
         if quantity > cart_item.product.count_exist:
@@ -67,8 +71,9 @@ class CartService:
         if gift_wrap_message:
             cart_item.gift_wrap_message = gift_wrap_message
 
-        
+        print("inja?")
         cart_item.save()
+        print("inja chi?")
         return cart_item
 
     @staticmethod
