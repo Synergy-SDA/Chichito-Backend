@@ -21,10 +21,9 @@ class CartService:
     @staticmethod
     def add_item(cart, product_id, quantity, gift_wrap_id=None, gift_wrap_message=None):
         try:
-            print("dali")
+            print(product_id)
             product = Product.objects.filter(id=product_id, is_available=True).first()
             if not product:
-                print("moshe")
                 raise serializers.ValidationError({"error": "Product not available."})
             
             if quantity > product.count_exist:
@@ -39,14 +38,13 @@ class CartService:
             cart_item, created = CartItem.objects.get_or_create(cart=cart, product=product)
             if not created:
                 cart_item.quantity += quantity
-
+    
             cart_item.gift_wrap = gift_wrap
             cart_item.gift_wrap_message = gift_wrap_message
-            print("nai inja ")
+            print(created)
             cart_item.save()
             return cart_item
-        
-        except serializers.ValidationError as e:
+        except Exception as e:    
             raise e
             
 

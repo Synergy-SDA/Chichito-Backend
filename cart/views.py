@@ -13,45 +13,56 @@ from .models import GiftWrap,CartItem
 from .serializers import GiftWrapSerializer
 from drf_spectacular.utils import extend_schema, OpenApiParameter
 from rest_framework import status
+from drf_spectacular.utils import extend_schema, OpenApiParameter, OpenApiExample
+from drf_spectacular.types import OpenApiTypes
+from drf_spectacular.utils import extend_schema, OpenApiResponse, OpenApiParameter
 
 
 class CartAPIView(APIView):
     permission_classes = [IsAuthenticated]
-
     @extend_schema(
-        summary="Add an item to the cart",
-        description="Adds a product to the user's cart with optional gift wrap and message.",
         request={
-            "application/json": {
-                "type": "object",
-                "properties": {
-                    "product_id": {"type": "integer", "description": "ID of the product"},
-                    "quantity": {"type": "integer", "description": "Quantity of the product to add (default is 1)", "example": 1},
-                    "gift_wrap_id": {"type": "integer", "description": "ID of the selected gift wrap (optional)"},
-                    "gift_wrap_message": {"type": "string", "description": "Personalized message for the gift wrap (optional)", "example": "Happy Birthday!"}
+            'application/json': {
+                'type': 'object',
+                'properties': {
+                    'product_id': {'type': 'integer', 'description': 'ID of the product to add to the cart'},
+                    'quantity': {'type': 'integer', 'description': 'Quantity of the product', 'default': 1},
+                    'gift_wrap_id': {'type': 'integer', 'description': 'ID of the selected gift wrap'},
+                    'gift_wrap_message': {'type': 'string', 'description': 'Personalized message for the gift wrap'}
                 },
-                "required": ["product_id"],
+                'required': ['product_id']
             }
         },
         responses={
-            201: CartItemSerializer,
-            400: "Validation Error",
-        },
+            201: OpenApiResponse(
+                description="Cart item successfully added",
+                response=CartItemSerializer,
+            ),
+            400: OpenApiResponse(
+                description="Validation error",
+                response={'type': 'object', 'properties': {'error': {'type': 'string'}}},
+            ),
+            500: OpenApiResponse(
+                description="Unexpected error",
+                response={'type': 'object', 'properties': {'error': {'type': 'string'}}},
+            ),
+        }
     )
     def post(self, request):
         cart = CartService.get_or_create_cart(request.user)
         product_id = request.data.get('product_id')
         quantity = request.data.get('quantity', 1)
         gift_wrap_id = request.data.get('gift_wrap_id')
-        gift_wrap_message = request.data.get('gift_wrap_message')
-
+        gift_wrap_message = request.data.get('gift_wrap_message') 
         try:
             cart_item = CartService.add_item(cart, product_id, quantity, gift_wrap_id, gift_wrap_message)
-            print("ba")
             serializer = CartItemSerializer(cart_item)
             return Response(serializer.data, status=status.HTTP_201_CREATED)
         except ValidationError as e:
             return Response({'error': str(e)}, status=status.HTTP_400_BAD_REQUEST)
+        except Exception as e:
+            return Response({'error': f"Unexpected error: {str(e)}"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
 
     @extend_schema(
         summary="Update an item in the cart",
