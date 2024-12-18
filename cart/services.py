@@ -51,9 +51,9 @@ class CartService:
 
     @staticmethod
     def update_item(cart, product_id, quantity, gift_wrap_id=None, gift_wrap_message=None):
-        print("va")
-        print(cart)
-        print(product_id)
+        # print("va")
+        # print(cart)
+        # print(product_id)
         cart_item = get_object_or_404(CartItem, cart=cart ,id = product_id)
         print(cart_item)
         if not cart_item:
@@ -71,9 +71,9 @@ class CartService:
         if gift_wrap_message:
             cart_item.gift_wrap_message = gift_wrap_message
 
-        print("inja?")
+        # print("inja?")
         cart_item.save()
-        print("inja chi?")
+        # print("inja chi?")
         return cart_item
 
     @staticmethod
