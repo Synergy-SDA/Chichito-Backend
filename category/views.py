@@ -3,11 +3,11 @@ from rest_framework.response import Response
 from rest_framework import status
 from .models import Category
 from .serializers import *
-
+from .permissions import IsOwnerOrReadOnly
 
 class CategoryListCreateAPIView(APIView):
     serializer_class = CategoryCreateSerializer
-
+    permission_classes = [IsOwnerOrReadOnly]
     def get(self, request):
         categories = Category.objects.all()
         serializer = self.serializer_class(categories, many=True)  # Serialize the queryset
@@ -22,7 +22,7 @@ class CategoryListCreateAPIView(APIView):
 
 class CategoryDetailAPIView(APIView):
     serializer_class = CategoryDetailSerializer
-
+    permission_classes = [IsOwnerOrReadOnly]    
     def get_object(self, pk):
         try:
             return Category.objects.get(pk=pk)
