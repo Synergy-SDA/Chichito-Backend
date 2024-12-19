@@ -8,7 +8,7 @@ import datetime
 class CategoryCreateSerializer(serializers.ModelSerializer):
     class Meta:
         model = Category
-        fields = [ 'id' ,'name', 'description', 'parent']
+        fields = [ 'id','name', 'description', 'parent']
 
     def validate(self, attrs):
         name = attrs.get('name')
