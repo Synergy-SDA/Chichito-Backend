@@ -775,7 +775,7 @@ class FavoriteToggleAPIView(APIView):
             )
 
 
-
+## با کوئری پارام و ایدی کتگوری
 
 
 # class ProductFilterAndSortAPIView(APIView):
@@ -893,6 +893,9 @@ class FavoriteToggleAPIView(APIView):
 
 
 
+## با کوئری پارام و اسم کتگوری
+
+
 # class ProductFilterAndSortAPIView(APIView):
 #     @extend_schema(
 #         request=None,
@@ -1006,6 +1009,12 @@ class FavoriteToggleAPIView(APIView):
 #         serializer = ProductSerializer(queryset, many=True)
 #         return Response(serializer.data, status=status.HTTP_200_OK)
 
+
+
+
+
+
+####### با جیسون و اسم کتگوری
 
 class ProductFilterAndSortAPIView(APIView):
     @extend_schema(
