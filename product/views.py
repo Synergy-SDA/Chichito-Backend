@@ -839,11 +839,18 @@ class ProductFilterAndSortAPIView(APIView):
                     if not feature_name or not feature_value:
                         continue
                     
-                    # Handle direct fields in Product model
-                    if hasattr(Product, feature_name):
-                        queryset = queryset.filter(**{feature_name: feature_value})
+                    # Handle price feature (filter products less than the specified price)
+                    if feature_name == "price":
+                        try:
+                            price_value = float(feature_value)
+                            queryset = queryset.filter(price__lt=price_value)  # Filter for price less than the given value
+                        except ValueError:
+                            return Response(
+                                {"error": "Invalid value for price, should be a number."},
+                                status=status.HTTP_400_BAD_REQUEST
+                            )
                     else:
-                        # Handle features in FeatureValue model
+                        # Handle other features in FeatureValue model
                         queryset = queryset.filter(
                             features__feature__name=feature_name,
                             features__value=feature_value
