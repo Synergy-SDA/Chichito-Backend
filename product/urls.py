@@ -36,6 +36,7 @@ urlpatterns = [
     path('products/sort/price/', ProductSortPriceAPIView.as_view(), name='product-sort-by-price'),
 
     path('products/filter/', ProductFilterAPIView.as_view(), name='product-filter'),
+    path('products/filter-and-sort/', ProductFilterAndSortAPIView.as_view(), name='product-filter-and-sort'),
     
     
     path('products/<int:product_id>/similar/', SimilarProductsView.as_view(), name='similar-products'),
