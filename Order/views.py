@@ -163,6 +163,7 @@ class AdminOrderStatusUpdateView(APIView):
                     Order.StatusChoices.PROCESSING,
                     Order.StatusChoices.COMPLETED,
                     Order.StatusChoices.CANCELED,
+                    Order.StatusChoices.SHIPPED,
                 ],
             ),
         ],
@@ -203,6 +204,7 @@ class AdminOrderStatusUpdateView(APIView):
             Order.StatusChoices.PROCESSING,
             Order.StatusChoices.COMPLETED,
             Order.StatusChoices.CANCELED,
+            order.StatusChoices.SHIPPED,
         ]:
             return Response(
                 {"error": "Invalid status provided."},
