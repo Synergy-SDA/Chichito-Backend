@@ -306,6 +306,8 @@ class ProductFilterAPIView(APIView):
                     feature_value = feature.get('value')
                     
                     if feature_name and feature_value:
+                        print(feature_name)
+                        print(feature_value)
                         queryset = queryset.filter(
                             features__feature__name=feature_name, 
                             features__value=feature_value
