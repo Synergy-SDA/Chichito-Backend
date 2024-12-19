@@ -223,19 +223,23 @@ class CommentCreateSerializer(serializers.ModelSerializer):
     
 
 class CommentDetailSerializer(serializers.ModelSerializer):
+    first_name = serializers.SerializerMethodField()
+
     class Meta:
         model = Comment
-        fields = [ 'user' ,'product',  'content' , 'rate']
+        fields = ['user', 'product', 'content', 'rate', 'first_name']
         read_only_fields = ['user']
+
+    def get_first_name(self, obj):
+        return obj.user.first_name
+
     def update(self, instance, validated_data):
-        # Update the fields of the instance with the validated data
         instance.content = validated_data.get('content', instance.content)
         instance.rate = validated_data.get('rate', instance.rate)
-        # You can add more fields as needed
-        
-        # Save the updated instance
+
         instance.save()
         return instance
+
     
 class FavoriteSerializer(serializers.Serializer):
 
