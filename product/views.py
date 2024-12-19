@@ -15,6 +15,8 @@ from rest_framework.parsers import MultiPartParser, FormParser, JSONParser
 from rest_framework.permissions import IsAuthenticated
 from .services import FavoritService
 from .permissions import IsAdminOrReadOnly
+from drf_spectacular.types import OpenApiTypes
+
 
 class CustomPagination(PageNumberPagination):
     page_size = 10
@@ -773,7 +775,7 @@ class FavoriteToggleAPIView(APIView):
             )
 
 
-
+## با کوئری پارام و ایدی کتگوری
 
 
 # class ProductFilterAndSortAPIView(APIView):
@@ -891,50 +893,151 @@ class FavoriteToggleAPIView(APIView):
 
 
 
+## با کوئری پارام و اسم کتگوری
+
+
+# class ProductFilterAndSortAPIView(APIView):
+#     @extend_schema(
+#         request=None,
+#         responses=ProductSerializer(many=True),
+#         description="Filter and sort products by category name, features, name (optional), and price.",
+#         parameters=[
+#             OpenApiParameter(
+#                 name="category",
+#                 type=str,
+#                 location=OpenApiParameter.QUERY,
+#                 description="Category name to filter by",
+#                 required=False,
+#             ),
+#             OpenApiParameter(
+#                 name="features",
+#                 type=str,
+#                 location=OpenApiParameter.QUERY,
+#                 description="List of features to filter by (e.g., '[{\"name\": \"color\", \"value\": \"red\"}]')."
+#                             "Direct fields like 'price' and 'count_exist' can also be filtered.",
+#                 required=False,
+#             ),
+#             OpenApiParameter(
+#                 name="order",
+#                 type=str,
+#                 location=OpenApiParameter.QUERY,
+#                 description="The sort order for product names. Use 'asc' for ascending or 'desc' for descending.",
+#                 required=False,
+#                 enum=["asc", "desc"],
+#             ),
+#             OpenApiParameter(
+#                 name="price_order",
+#                 type=str,
+#                 location=OpenApiParameter.QUERY,
+#                 description="The sort order for price. Use 'asc' for ascending or 'desc' for descending.",
+#                 required=False,
+#                 enum=["asc", "desc"],
+#             ),
+#         ]
+#     )
+#     def get(self, request, *args, **kwargs):
+#         category_name = request.query_params.get('category')
+#         features_param = request.query_params.get('features')
+#         order = request.query_params.get('order', None)
+#         price_order = request.query_params.get('price_order', None)
+
+#         # Start with all products
+#         queryset = Product.objects.all()
+
+#         # Filter by category name
+#         if category_name:
+#             queryset = queryset.filter(category__name__iexact=category_name)
+
+#         # Filter by features or direct fields
+#         if features_param:
+#             try:
+#                 features_list = json.loads(features_param)
+#                 for feature in features_list:
+#                     feature_name = feature.get('name')
+#                     feature_value = feature.get('value')
+                    
+#                     if not feature_name or not feature_value:
+#                         continue
+                    
+#                     # Handle price feature (filter products less than the specified price)
+#                     if feature_name == "price":
+#                         try:
+#                             price_value = float(feature_value)
+#                             queryset = queryset.filter(price__lt=price_value)  # Filter for price less than the given value
+#                         except ValueError:
+#                             return Response(
+#                                 {"error": "Invalid value for price, should be a number."},
+#                                 status=status.HTTP_400_BAD_REQUEST
+#                             )
+#                     else:
+#                         # Handle other features in FeatureValue model
+#                         queryset = queryset.filter(
+#                             features__feature__name=feature_name,
+#                             features__value=feature_value
+#                         )
+#             except json.JSONDecodeError:
+#                 return Response(
+#                     {"error": "Invalid JSON format for features"},
+#                     status=status.HTTP_400_BAD_REQUEST
+#                 )
+
+#         # Optional: Sort by name if 'order' is specified
+#         if order:
+#             if order not in ['asc', 'desc']:
+#                 return Response(
+#                     {"error": "Invalid order value. Use 'asc' or 'desc'."},
+#                     status=status.HTTP_400_BAD_REQUEST
+#                 )
+#             is_desc_name = order == 'desc'
+#             queryset = queryset.order_by(
+#                 Lower('name').desc() if is_desc_name else Lower('name')
+#             )
+
+#         # Sort by price if `price_order` is specified
+#         if price_order:
+#             if price_order not in ['asc', 'desc']:
+#                 return Response(
+#                     {"error": "Invalid price_order value. Use 'asc' or 'desc'."},
+#                     status=status.HTTP_400_BAD_REQUEST
+#                 )
+#             is_desc_price = price_order == 'desc'
+#             queryset = queryset.order_by(
+#                 '-price' if is_desc_price else 'price'
+#             )
+
+#         # Serialize and return the results
+#         serializer = ProductSerializer(queryset, many=True)
+#         return Response(serializer.data, status=status.HTTP_200_OK)
+
+
+
+
+
+
+####### با جیسون و اسم کتگوری
+
 class ProductFilterAndSortAPIView(APIView):
     @extend_schema(
-        request=None,
+        request=OpenApiTypes.OBJECT,
         responses=ProductSerializer(many=True),
         description="Filter and sort products by category name, features, name (optional), and price.",
-        parameters=[
-            OpenApiParameter(
-                name="category",
-                type=str,
-                location=OpenApiParameter.QUERY,
-                description="Category name to filter by",
-                required=False,
-            ),
-            OpenApiParameter(
-                name="features",
-                type=str,
-                location=OpenApiParameter.QUERY,
-                description="List of features to filter by (e.g., '[{\"name\": \"color\", \"value\": \"red\"}]')."
-                            "Direct fields like 'price' and 'count_exist' can also be filtered.",
-                required=False,
-            ),
-            OpenApiParameter(
-                name="order",
-                type=str,
-                location=OpenApiParameter.QUERY,
-                description="The sort order for product names. Use 'asc' for ascending or 'desc' for descending.",
-                required=False,
-                enum=["asc", "desc"],
-            ),
-            OpenApiParameter(
-                name="price_order",
-                type=str,
-                location=OpenApiParameter.QUERY,
-                description="The sort order for price. Use 'asc' for ascending or 'desc' for descending.",
-                required=False,
-                enum=["asc", "desc"],
-            ),
+        examples=[
+            OpenApiExample(
+                "Example Request",
+                value={
+                    "category": "Electronics",
+                    "features": [{"name": "color", "value": "red"}],
+                    "order": "asc",
+                    "price_order": "desc"
+                }
+            )
         ]
     )
-    def get(self, request, *args, **kwargs):
-        category_name = request.query_params.get('category')
-        features_param = request.query_params.get('features')
-        order = request.query_params.get('order', None)
-        price_order = request.query_params.get('price_order', None)
+    def post(self, request, *args, **kwargs):
+        category_name = request.data.get('category')
+        features_param = request.data.get('features')
+        order = request.data.get('order', None)
+        price_order = request.data.get('price_order', None)
 
         # Start with all products
         queryset = Product.objects.all()
@@ -946,8 +1049,7 @@ class ProductFilterAndSortAPIView(APIView):
         # Filter by features or direct fields
         if features_param:
             try:
-                features_list = json.loads(features_param)
-                for feature in features_list:
+                for feature in features_param:
                     feature_name = feature.get('name')
                     feature_value = feature.get('value')
                     
@@ -970,9 +1072,9 @@ class ProductFilterAndSortAPIView(APIView):
                             features__feature__name=feature_name,
                             features__value=feature_value
                         )
-            except json.JSONDecodeError:
+            except (TypeError, ValueError):
                 return Response(
-                    {"error": "Invalid JSON format for features"},
+                    {"error": "Invalid format for features. Expected a list of objects with 'name' and 'value'."},
                     status=status.HTTP_400_BAD_REQUEST
                 )
 
