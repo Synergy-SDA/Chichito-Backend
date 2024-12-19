@@ -499,7 +499,6 @@ class ProductCommentsView(APIView):
     serializer_class = CommentDetailSerializer
 
     def get(self, request, product_id, *args, **kwargs):
-        # Check if the product exists
         try:
             product = Product.objects.get(id=product_id)
         except Product.DoesNotExist:
