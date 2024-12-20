@@ -28,7 +28,7 @@ class ProductListAPIView(APIView):
         queryset = Product.objects.all()
         paginator = CustomPagination()
         paginated_queryset = paginator.paginate_queryset(queryset, request)
-        serializer = ProductSerializer(paginated_queryset, many=True)
+        serializer = ProductSerializer(paginated_queryset, many=True, context={'request': request})
         return paginator.get_paginated_response(serializer.data)
 
 class ProductAPIView(APIView):
@@ -54,7 +54,7 @@ class ProductAPIView(APIView):
         except Product.DoesNotExist:
             return Response({"detail": "Product not found."}, status=status.HTTP_404_NOT_FOUND)
 
-        serializer = ProductSerializer(product)
+        serializer = ProductSerializer(product, context={'request': request})
         return Response(serializer.data)
 
     @extend_schema(

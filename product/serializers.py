@@ -57,6 +57,7 @@ class ProductSerializer(serializers.ModelSerializer):
         write_only=True,
         required=False
     )
+    is_liked = serializers.SerializerMethodField()
     class Meta:
         model = Product
         fields = [
@@ -74,7 +75,8 @@ class ProductSerializer(serializers.ModelSerializer):
             'category_details',
             'product_features',
             'images',
-            'uploaded_images'
+            'uploaded_images',
+            'is_liked'
         ]
     def get_product_features(self, obj):
         return [
@@ -84,6 +86,11 @@ class ProductSerializer(serializers.ModelSerializer):
             } 
             for feature_value in obj.features.all()
         ]
+    def get_is_liked(self, obj):
+        request = self.context.get('request')
+        if request and request.user.is_authenticated:
+            return FavoritProduct.objects.filter(user=request.user, product=obj).exists()
+        return False
 
     def create(self, validated_data):
         features_data = validated_data.pop('features', [])
