@@ -51,6 +51,8 @@ urlpatterns = [
     path('favorites/', FavoriteAPI.as_view(), name='favorite-list'),
     path('favorites/toggle/', FavoriteToggleAPIView.as_view(), name='favorite-toggle'),    
 
+    path('products/most-sold/', MostSoldProductsView.as_view(), name='most-sold-products'),
+
 
 ]
 

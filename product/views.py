@@ -13,7 +13,7 @@ import json
 from rest_framework.views import APIView
 from rest_framework.parsers import MultiPartParser, FormParser, JSONParser
 from rest_framework.permissions import IsAuthenticated
-from .services import FavoritService
+from .services import FavoritService , ProductService
 from .permissions import IsAdminOrReadOnly
 from drf_spectacular.types import OpenApiTypes
 
@@ -1104,4 +1104,9 @@ class ProductFilterAndSortAPIView(APIView):
 
         # Serialize and return the results
         serializer = ProductSerializer(queryset, many=True)
+        return Response(serializer.data, status=status.HTTP_200_OK)
+class MostSoldProductsView(APIView):
+    def get(self, request):
+        products = ProductService.get_most_sold_products()
+        serializer = ProductSerializer(products, many=True)
         return Response(serializer.data, status=status.HTTP_200_OK)
