@@ -24,4 +24,8 @@ urlpatterns = [
     path('token/refresh/', TokenRefreshView.as_view(), name='token_refresh'),
 
     path('wallet/', WalletDetailView.as_view(), name='wallet-detail'),
+
+    path('make-user-admin/', MakeUserAdminView.as_view(), name='make-user-admin'),
+
+    path('users-list/', ListUsersView.as_view(), name='list-users'),
 ]

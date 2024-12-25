@@ -16,6 +16,7 @@ import datetime
 
 from chichito import settings
 from .models import *
+from .services import UserService
 
 
 
@@ -197,3 +198,23 @@ class WalletSerializer(serializers.ModelSerializer):
             instance.balance += balance
         instance.save()
         return instance
+
+class UserToAdminSerializer(serializers.Serializer):
+    user_id = serializers.IntegerField()
+
+    def validate(self, attrs):
+        user_id = attrs.get("user_id")
+        try:
+            User.objects.get(id=user_id)
+        except User.DoesNotExist:
+            raise serializers.ValidationError("User not found.")
+        return attrs
+
+    def save(self):
+        user_id = self.validated_data.get("user_id")
+        return UserService.promote_user_to_admin(user_id)
+class UserListSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = User
+        fields = ['id', 'email', 'username']
+
