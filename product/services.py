@@ -1,6 +1,9 @@
 from django.db import transaction
 from django.core.exceptions import ValidationError
-
+from .models import Product
+from django.db.models.functions import Coalesce 
+from django.db.models import Sum, Value, F
+from Order.models import Order
 class FavoritService:
     def __init__(self, user):
         self.user = user
@@ -61,5 +64,41 @@ class FavoritService:
             self.add_to_favorites(product)
             return True
         
-    
-    
+class ProductService:
+    @staticmethod
+    def get_most_sold_products(limit=8):
+        try:
+            # Annotating sold_count based on the quantity of order items for each product
+            sold_products = (
+                Product.objects
+                .annotate(
+                    sold_count=Coalesce(
+                        Sum('orderitem__quantity', filter=F('orderitem__order__status') == Order.StatusChoices.COMPLETED),
+                        Value(0)
+                    )
+                )
+                .order_by('-sold_count')[:limit]  # Get the top 'limit' sold products
+            )
+
+            # Debugging print to see the result of the query
+            print(f"Sold Products: {sold_products}")
+            
+            # If fewer than `limit` products are sold, add unsold products
+            if sold_products.count() < limit:
+                # Getting additional products to make up for the missing count
+                additional_products = (
+                    Product.objects
+                    .exclude(id__in=[product.id for product in sold_products])
+                    .annotate(
+                        sold_count=Value(0)
+                    )
+                    .order_by('id')[: limit - sold_products.count()]
+                )
+                sold_products = list(sold_products) + list(additional_products)
+
+            return sold_products
+
+        except Exception as e:
+            # Print exception details to help debug the issue
+            print(f"Error occurred: {str(e)}")
+            return []
