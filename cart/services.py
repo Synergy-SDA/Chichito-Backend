@@ -36,8 +36,8 @@ class CartService:
                     raise ValidationError({"error": "Invalid gift wrap selected."})
 
             cart_item, created = CartItem.objects.get_or_create(cart=cart, product=product)
-            if not created:
-                cart_item.quantity += quantity
+            if quantity:
+                cart_item.quantity += (quantity-1)
     
             cart_item.gift_wrap = gift_wrap
             cart_item.gift_wrap_message = gift_wrap_message
