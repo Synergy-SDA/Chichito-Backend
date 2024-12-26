@@ -25,7 +25,9 @@ class OrderSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Order
-        fields = ['id', 'user', 'status', 'total_price', 'items', 'created_at', 'updated_at' , 'payment_status']
+        fields = ['id', 'user', 'status', 'total_price', 'items', 'created_at', 'updated_at' , 
+                  'payment_status' , 'Fname_of_reciever' , 'Lname_of_reciever' ,  'address' , 'postal_code' 
+                       , 'province' , 'city' , 'phone_number' , 'email']
         read_only_fields = ['id', 'total_price', 'created_at', 'updated_at']
 
 
@@ -33,9 +35,18 @@ class CreateOrderSerializer(serializers.Serializer):
     """
     Serializer for creating an order from the user's shopping cart.
     """
+    Fname_of_reciever = serializers.CharField(max_length=255)
+    Lname_of_reciever = serializers.CharField(max_length=255)
+    address = serializers.CharField(max_length=512)
+    postal_code = serializers.IntegerField()
+    province = serializers.CharField(max_length=255)
+    city = serializers.CharField(max_length=255)
+    phone_number = serializers.CharField(max_length=255)
+    email = serializers.EmailField(required=False, allow_null=True ,  allow_blank=True)
+
     def validate(self, data):
         user = self.context['request'].user
-        cart = Cart.objects.filter(user=user).last()  # Get the most recent cart
+        cart = Cart.objects.filter(user=user).last()
 
         if not cart:
             raise serializers.ValidationError("No shopping cart found for this user.")
@@ -43,19 +54,18 @@ class CreateOrderSerializer(serializers.Serializer):
         if not cart.items.exists():
             raise serializers.ValidationError("Your cart is empty.")
 
-        return {'cart': cart}
+        data['cart'] = cart 
+        return data
 
     def create(self, validated_data):
-        cart = validated_data.get('cart')
-        if not cart:
-            raise serializers.ValidationError("No valid cart found to create the order.")
-
+        cart = validated_data.pop('cart')
         user = self.context['request'].user
 
-        # Create the order
-        print("kos")
-        order = Order.objects.create(user=user, cart=cart)
-        print("kir")
+        order = Order.objects.create(
+            user=user,
+            cart=cart,
+            **validated_data  
+        )
 
         # Move cart items to order items
         for item in cart.items.all():
@@ -70,15 +80,11 @@ class CreateOrderSerializer(serializers.Serializer):
 
         # Calculate the total price of the order
         order.calculate_total_price()
-        print("swswsw")
-        # Clear the cart by removing all items (instead of deleting the cart)
+
+        # Clear the cart
         cart.items.all().delete()
 
-        # After the order, create a new cart for the user (to ensure cart availability for next order)
-        # new_cart = Cart.objects.create(user=user)
-
         return order
-
 
 
 
