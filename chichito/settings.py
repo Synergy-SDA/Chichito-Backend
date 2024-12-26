@@ -61,7 +61,8 @@ INSTALLED_APPS = [
     'corsheaders',
     'product',
     'cart',
-    'Order'
+    'Order',
+    'ai_model'
 
 ]
 
