@@ -14,15 +14,17 @@ class UserInformationAPIView(APIView):
     
 class ModelResultAPIView(APIView):
     def get(self, *args, **kwargs):
-        try:
-            prediction = cache.get('predictions')
-            serializer = ResultSerializer(data = prediction)
-            if serializer.is_valid():
-                return Response(serializer.data, status = status.HTTP_200_OK)
-            
-            return Response(serializer.data, status = status.HTTP_400_BAD_REQUEST)
-        except:
-            return Response({'detail': 'Predictions not found'}, status = status.HTTP_404_NOT_FOUND)
+        cache_key = 'predictions'
+        prediction = cache.get(cache_key)
+        
+        if prediction is None:
+            return Response({'detail': 'Predictions not found in cache'}, status=status.HTTP_404_NOT_FOUND)
+        
+        serializer = ResultSerializer(data=prediction, many=True)
+        if serializer.is_valid():
+            return Response(serializer.data, status=status.HTTP_200_OK)
+        
+        return Response({'detail': 'Invalid prediction data'}, status=status.HTTP_400_BAD_REQUEST)
         
         
 

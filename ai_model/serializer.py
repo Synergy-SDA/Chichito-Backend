@@ -14,7 +14,7 @@ class UserSerializer(serializers.Serializer):
 
 
 class ResultSerializer(serializers.Serializer):
-    product_id = serializers.LIstField(
+    product_id = serializers.ListField(
         child = serializers.FloatField(),
         required = True
     )
