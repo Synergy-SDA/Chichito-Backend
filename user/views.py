@@ -9,7 +9,7 @@ from django.core.exceptions import ValidationError as DjangoValidationError
 from .utility import send_otp_email
 from .serializers import *
 from .models import *
-from .permissions import IsOwnerOrReadOnly
+from .permissions import IsOwnerOrReadOnly,IsAdminUser
 from django.contrib.auth import logout
 
 class RegisterUserView(APIView):
@@ -203,3 +203,25 @@ class WalletDetailView(APIView):
             return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
         except Wallet.DoesNotExist:
             return Response({"detail": "Wallet not found."}, status=status.HTTP_404_NOT_FOUND)
+
+class MakeUserAdminView(APIView):
+    permission_classes = [IsAuthenticated,IsAdminUser]
+    serializer_class = UserToAdminSerializer
+    def post(self, request):
+        serializer = self.serializer_class(data=request.data)
+        if serializer.is_valid(raise_exception=True):
+            user = serializer.save()
+            return Response(
+                {"message": f"User {user.email} has been promoted to admin."},
+                status=status.HTTP_200_OK
+            )
+
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+class ListUsersView(APIView):
+    permission_classes = [IsAuthenticated, IsAdminUser]  
+
+    def get(self, request):
+        users = User.objects.all()  
+        serializer = UserListSerializer(users, many=True)
+        return Response(serializer.data, status=200)
