@@ -177,8 +177,8 @@ class UserUpdateSerializer(serializers.ModelSerializer):
     class Meta:
         model = User
         fields = ['id', 'username', 'first_name', 'last_name', 'phone_number', 'email', 
-                  'profile_image', 'birth_date', 'address', 'sex', 'date_joined', 'last_login']
-        read_only_fields = ['id']
+                  'profile_image', 'birth_date', 'address', 'sex', 'date_joined', 'last_login','is_superuser','is_staff']
+        read_only_fields = ['id','date_joined', 'last_login','is_superuser','is_staff']
         
         def update(self, instance, validated_data):
             profile_image = validated_data.get('profile_image', instance.profile_image)
