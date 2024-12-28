@@ -33,6 +33,17 @@ class Order(models.Model):
     total_price = models.DecimalField(max_digits=10, decimal_places=2, default=0.00)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
+    Fname_of_reciever = models.CharField(max_length=255 , blank=True , null=True,)
+    Lname_of_reciever = models.CharField(max_length=255 , blank=True , null=True,)
+    address = models.CharField(max_length=512 , blank=True , null=True,)
+    postal_code = models.IntegerField(null=True,)
+    province = models.CharField(max_length=255 , blank=True , null=True,)
+    city = models.CharField(max_length=255 , blank=True , null=True,)
+    phone_number = models.CharField(max_length=255 , blank=True , null=True,) 
+    email = models.EmailField(max_length=255 , null=True,)
+    
+    REQUIRED_FIELDS = ['Fname_of_reciever' , 'Lname_of_reciever' ,  'address' , 'postal_code' 
+                       , 'province' , 'city' , 'phone_number']
 
     def calculate_total_price(self):
         print("vvv")
