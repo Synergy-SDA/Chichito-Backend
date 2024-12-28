@@ -110,6 +110,8 @@ class ProductSerializer(serializers.ModelSerializer):
         for feature_data in features_data:
             # Extract the key-value pair
             feature_name = list(feature_data.keys())[0]
+
+            
             feature_value_text = list(feature_data.values())[0]
 
             # Get or create the feature
@@ -163,7 +165,9 @@ class ProductSerializer(serializers.ModelSerializer):
             feature_values = []
             for feature_data in features_data:
                 feature_name = list(feature_data.keys())[0]
+                
                 feature_value_text = list(feature_data.values())[0]
+
 
                 # Get or create the feature
                 feature, _ = Feature.objects.get_or_create(name=feature_name)
