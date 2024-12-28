@@ -96,7 +96,6 @@ class ProductSerializer(serializers.ModelSerializer):
         features_data = validated_data.pop('features', [])
         category = validated_data.pop('category', None)
         uploaded_images = validated_data.pop('uploaded_images', [])
-
        
     # Handle category creation or association
         if isinstance(category, dict):
@@ -105,28 +104,29 @@ class ProductSerializer(serializers.ModelSerializer):
 
         product = Product.objects.create(category=category, **validated_data)
 
-        if features_data:
-            feature_values = []
-            for feature_data in features_data:
-                # Extract the key-value pair
-                feature_name = list(feature_data.keys())[0]
-                feature_value_text = list(feature_data.values())[0]
+        # if features_data:
 
-                # Get or create the feature
-                feature, _ = Feature.objects.get_or_create(name=feature_name)
+        feature_values = []
+        for feature_data in features_data:
+            # Extract the key-value pair
+            feature_name = list(feature_data.keys())[0]
+            feature_value_text = list(feature_data.values())[0]
 
-                # Get or create the feature value
-                feature_value, _ = FeatureValue.objects.get_or_create(
-                    feature=feature,
-                    value=feature_value_text
-                )
+            # Get or create the feature
+            feature, _ = Feature.objects.get_or_create(name=feature_name)
 
-                # Collect the feature values to add in bulk
-                feature_values.append(feature_value)
+            # Get or create the feature value
+            feature_value, _ = FeatureValue.objects.get_or_create(
+                feature=feature,
+                value=feature_value_text
+            )
 
-            # Add all feature values to the product in a single operation
-            product.features.add(*feature_values)
-        
+            # Collect the feature values to add in bulk
+            feature_values.append(feature_value)
+
+        # Add all feature values to the product in a single operation
+        product.features.add(*feature_values)
+    
         if uploaded_images:
             ProductImage.objects.bulk_create([
                 ProductImage(
