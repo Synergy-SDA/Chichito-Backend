@@ -16,6 +16,7 @@ from rest_framework import status
 from drf_spectacular.utils import extend_schema, OpenApiParameter, OpenApiExample
 from drf_spectacular.types import OpenApiTypes
 from drf_spectacular.utils import extend_schema, OpenApiResponse, OpenApiParameter
+from user.permissions import IsAdminUser
 
 
 class CartAPIView(APIView):
@@ -147,7 +148,7 @@ class CartDeleteAPI(APIView):
         return Response(status=status.HTTP_204_NO_CONTENT)
 
 class GiftWrapAPIView(APIView):
-    permission_classes = [IsAuthenticated]
+    permission_classes = [IsAuthenticated,IsAdminUser]
     serialzer_class = [GiftWrapSerializer]
     @extend_schema(
         summary="Create New gift wrap",
