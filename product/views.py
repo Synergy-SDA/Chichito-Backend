@@ -16,8 +16,11 @@ from rest_framework.permissions import IsAuthenticated
 from .services import FavoritService , ProductService
 from .permissions import IsAdminOrReadOnly
 from drf_spectacular.types import OpenApiTypes
+from  django.core.cache import cache
+from django.conf import settings
 
 
+CACHE_TTL = getattr(settings, 'CACHE_TTL', 60 * 15)
 class CustomPagination(PageNumberPagination):
     page_size = 10
     page_size_query_param = 'page_size'
@@ -25,11 +28,37 @@ class CustomPagination(PageNumberPagination):
 
 class ProductListAPIView(APIView):
     def get(self, request, *args, **kwargs):
-        queryset = Product.objects.all()
+        page = int(request.query_params.get('page', 1))
+        page_size = int(request.query_params.get('page_size', 10))
+        cache_key = f"product_list_{page}_{page_size}"
+
+        print(f"Checking cache for key: {cache_key}")
+        cached_data = cache.get(cache_key)
+        print("Cached data:", cached_data)
+
+        if cached_data is not None:
+            print("Cache hit.")
+            return Response(cached_data)
+
+        print("Cache miss. Querying database.")
+        queryset = Product.objects.all().order_by('-created_at')
         paginator = CustomPagination()
         paginated_queryset = paginator.paginate_queryset(queryset, request)
+
+        if paginated_queryset is None:
+            print("Pagination failed.")
+            return Response({"error": "Pagination failed"}, status=500)
+
         serializer = ProductSerializer(paginated_queryset, many=True, context={'request': request})
-        return paginator.get_paginated_response(serializer.data)
+        response = paginator.get_paginated_response(serializer.data)
+
+        print("Caching data for key:", cache_key)
+        print("Data being cached:", response.data)
+
+        cache.set(cache_key, response.data, timeout=CACHE_TTL)
+
+        return response
+
 
 class ProductAPIView(APIView):
     parser_classes = [MultiPartParser, FormParser, JSONParser]
