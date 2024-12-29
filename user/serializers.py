@@ -216,5 +216,5 @@ class UserToAdminSerializer(serializers.Serializer):
 class UserListSerializer(serializers.ModelSerializer):
     class Meta:
         model = User
-        fields = ['id', 'email', 'username']
+        fields = ['id', 'email', 'username','first_name', 'last_name','date_joined', 'last_login','is_superuser','is_staff']
 
