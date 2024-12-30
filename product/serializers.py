@@ -1,7 +1,7 @@
 from rest_framework import serializers
 from .models import *
 from category.serializers import *
-
+import json
 class ProductImageSerializer(serializers.ModelSerializer):
     class Meta:
         model = ProductImage
@@ -66,7 +66,6 @@ class ProductSerializer(serializers.ModelSerializer):
             'description',
             'price',
             'count_exist',
-            'product_image',
             'is_available',
             'created_at',
             'updated_at',
@@ -77,7 +76,51 @@ class ProductSerializer(serializers.ModelSerializer):
             'images',
             'uploaded_images',
             'is_liked'
-        ]
+            ]
+    def to_internal_value(self, data):
+        print("to_internal_value: Full Data", data)  # Log the full input data
+
+        features = data.get('features', [])
+        print("to_internal_value: Raw Features", features)  # Log raw features
+
+        print("to_internal_value: Received Data", data)  # Log full data
+        files = data.get('uploaded_images')
+        print("Uploaded Images:", files)  # Log file data
+        product_image = data.get('product_image')
+        print("Product Image:", product_image)  # Log product image data
+ 
+        # Validate features explicitly
+        if not isinstance(features, list):
+            raise serializers.ValidationError({"features": "Expected a list of dictionaries."})
+
+        for i, feature in enumerate(features):
+            if not isinstance(feature, dict):
+                raise serializers.ValidationError({
+                    "features": {i: f"Expected a dictionary but got type '{type(feature).__name__}'."}
+                })
+            if 'key' not in feature or 'value' not in feature:
+                raise serializers.ValidationError({
+                    "features": {i: "Each dictionary must contain 'key' and 'value'."}
+                })
+
+        return super().to_internal_value(data)
+    def validate_features(self, value):
+        print("Inside validate_features. Received value:", value)  # Debug value received
+
+        # Ensure it is a list
+        if not isinstance(value, list):
+            raise ValidationError("Features must be a list of dictionaries.")
+
+        # Validate each dictionary in the list
+        for i, item in enumerate(value):
+            print(f"Validating feature {i}:", item)  # Debug each feature item
+            if not isinstance(item, dict):
+                raise ValidationError(f"Expected a dictionary of items but got {type(item).__name__}.")
+            if 'key' not in item or 'value' not in item:
+                raise ValidationError("Each feature must contain 'key' and 'value'.")
+        return value
+
+
     def get_product_features(self, obj):
         return [
             {
@@ -96,7 +139,6 @@ class ProductSerializer(serializers.ModelSerializer):
         features_data = validated_data.pop('features', [])
         category = validated_data.pop('category', None)
         uploaded_images = validated_data.pop('uploaded_images', [])
-       
     # Handle category creation or association
         if isinstance(category, dict):
         # If category is passed as a dictionary, create or get the category

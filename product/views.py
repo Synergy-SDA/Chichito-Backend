@@ -16,6 +16,8 @@ from rest_framework.permissions import IsAuthenticated
 from .services import FavoritService , ProductService
 from .permissions import IsAdminOrReadOnly
 from drf_spectacular.types import OpenApiTypes
+from django.http import QueryDict
+import json
 
 
 class CustomPagination(PageNumberPagination):
@@ -35,18 +37,65 @@ class ProductAPIView(APIView):
     parser_classes = [MultiPartParser, FormParser, JSONParser]
     permission_classes = [IsAdminOrReadOnly]
     @extend_schema(
-        request=ProductSerializer,
+        request={
+            "multipart/form-data": {
+                "type": "object",
+                "properties": {
+                    "name": {"type": "string", "description": "Name of the product"},
+                    "description": {"type": "string", "description": "Description of the product"},
+                    "price": {"type": "number", "description": "Price of the product"},
+                    "count_exist": {"type": "integer", "description": "Stock count for the product"},
+                    "features": {
+                        "type": "array",
+                        "items": {
+                            "type": "object",
+                            "properties": {
+                                "key": {"type": "string", "description": "Feature name"},
+                                "value": {"type": "string", "description": "Feature value"}
+                            }
+                        }
+                    },
+                    "uploaded_images": {"type": "array", "items": {"type": "string", "format": "binary"}},
+                    "category": {"type": "integer"}
+                }
+            }
+        },
         responses=ProductSerializer,
-        description="Create a new product"
+        description="Create a new product with all supported fields.",
     )
+
     def post(self, request, *args, **kwargs):
-        """Create a new product."""
-        serializer = ProductSerializer(data=request.data)
+        print("Raw Request Data:", request.data)
+        features = request.data.get('features')
+        print("Raw Features Field:", features)
+
+        # Parse the features field if it's a stringified JSON array
+        if isinstance(features, str):
+            try:
+                features = json.loads(features)  # Parse JSON string to Python list
+                print("Parsed Features:", features)
+            except json.JSONDecodeError:
+                return Response(
+                    {"features": ["Invalid JSON format for features."]},
+                    status=status.HTTP_400_BAD_REQUEST,
+                )
+
+        # Build a new mutable dictionary with parsed data
+        data = request.data.dict() if isinstance(request.data, QueryDict) else request.data
+        data.update(request.FILES)
+        data['features'] = features  # Replace features with parsed list
+        print("data",data)
+
+        # Combine data and files for the serializer
+        serializer = ProductSerializer(data=data)
+        print("serializer",serializer)
         if serializer.is_valid():
+            print("serializer",serializer)
             serializer.save()
             return Response(serializer.data, status=status.HTTP_201_CREATED)
-        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
+        print("Serializer Errors:", serializer.errors)  # Debug serializer errors
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
     def get(self, request, pk=None, *args, **kwargs):
         """Retrieve a single product by ID."""
         try:
