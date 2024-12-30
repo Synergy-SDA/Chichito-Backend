@@ -83,12 +83,6 @@ class ProductSerializer(serializers.ModelSerializer):
         features = data.get('features', [])
         print("to_internal_value: Raw Features", features)  # Log raw features
 
-        print("to_internal_value: Received Data", data)  # Log full data
-        files = data.get('uploaded_images')
-        print("Uploaded Images:", files)  # Log file data
-        product_image = data.get('product_image')
-        print("Product Image:", product_image)  # Log product image data
- 
         # Validate features explicitly
         if not isinstance(features, list):
             raise serializers.ValidationError({"features": "Expected a list of dictionaries."})
@@ -98,9 +92,9 @@ class ProductSerializer(serializers.ModelSerializer):
                 raise serializers.ValidationError({
                     "features": {i: f"Expected a dictionary but got type '{type(feature).__name__}'."}
                 })
-            if 'key' not in feature or 'value' not in feature:
+            if 'feature' not in feature or 'value' not in feature:
                 raise serializers.ValidationError({
-                    "features": {i: "Each dictionary must contain 'key' and 'value'."}
+                    "features": {i: "Each dictionary must contain 'feature' and 'value'."}
                 })
 
         return super().to_internal_value(data)
@@ -109,17 +103,18 @@ class ProductSerializer(serializers.ModelSerializer):
 
         # Ensure it is a list
         if not isinstance(value, list):
-            raise ValidationError("Features must be a list of dictionaries.")
+            raise serializers.ValidationError("Features must be a list of dictionaries.")
 
         # Validate each dictionary in the list
         for i, item in enumerate(value):
             print(f"Validating feature {i}:", item)  # Debug each feature item
             if not isinstance(item, dict):
-                raise ValidationError(f"Expected a dictionary of items but got {type(item).__name__}.")
-            if 'key' not in item or 'value' not in item:
-                raise ValidationError("Each feature must contain 'key' and 'value'.")
+                raise serializers.ValidationError(f"Expected a dictionary of items but got {type(item).__name__}.")
+            if 'feature' not in item or 'value' not in item:
+                raise serializers.ValidationError(
+                    {i: "Each dictionary must contain 'feature' and 'value'."}
+                )
         return value
-
 
     def get_product_features(self, obj):
         return [
@@ -150,27 +145,25 @@ class ProductSerializer(serializers.ModelSerializer):
 
         feature_values = []
         for feature_data in features_data:
-            # Extract the key-value pair
-            feature_name = list(feature_data.keys())[0]
+            # Use 'feature' and 'value' instead of 'key' and 'value'
+            feature_name = feature_data.get('feature')  # Extract 'feature'
+            feature_value_text = feature_data.get('value')
 
-            
-            feature_value_text = list(feature_data.values())[0]
+            if feature_name and feature_value_text:
+                # Get or create the feature
+                feature, _ = Feature.objects.get_or_create(name=feature_name)
 
-            # Get or create the feature
-            feature, _ = Feature.objects.get_or_create(name=feature_name)
+                # Get or create the feature value
+                feature_value, _ = FeatureValue.objects.get_or_create(
+                    feature=feature,
+                    value=feature_value_text
+                )
 
-            # Get or create the feature value
-            feature_value, _ = FeatureValue.objects.get_or_create(
-                feature=feature,
-                value=feature_value_text
-            )
-
-            # Collect the feature values to add in bulk
-            feature_values.append(feature_value)
-
-        # Add all feature values to the product in a single operation
-        product.features.add(*feature_values)
-    
+                # Collect the feature values to add in bulk
+                feature_values.append(feature_value)
+            # Add all feature values to the product in a single operation
+            product.features.add(*feature_values)
+        
         if uploaded_images:
             ProductImage.objects.bulk_create([
                 ProductImage(
