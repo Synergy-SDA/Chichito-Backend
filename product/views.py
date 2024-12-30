@@ -80,17 +80,29 @@ class ProductAPIView(APIView):
                     status=status.HTTP_400_BAD_REQUEST,
                 )
 
+        # Validate the features format
+        if not isinstance(features, list):
+            return Response(
+                {"features": ["Features must be a list of dictionaries."]},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        for i, feature in enumerate(features):
+            if not isinstance(feature, dict) or 'feature' not in feature or 'value' not in feature:
+                return Response(
+                    {"features": {i: "Each item must be a dictionary with 'feature' and 'value' keys."}},
+                    status=status.HTTP_400_BAD_REQUEST,
+                )
+
         # Build a new mutable dictionary with parsed data
         data = request.data.dict() if isinstance(request.data, QueryDict) else request.data
-        data.update(request.FILES)
+        data.update(request.FILES)  # Include files in the data
         data['features'] = features  # Replace features with parsed list
-        print("data",data)
+        print("Formatted Data:", data)
 
-        # Combine data and files for the serializer
+        # Pass the formatted data to the serializer
         serializer = ProductSerializer(data=data)
-        print("serializer",serializer)
         if serializer.is_valid():
-            print("serializer",serializer)
             serializer.save()
             return Response(serializer.data, status=status.HTTP_201_CREATED)
 
