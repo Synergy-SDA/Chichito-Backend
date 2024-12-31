@@ -179,6 +179,7 @@ class ProductSerializer(serializers.ModelSerializer):
         features_data = validated_data.pop('features', [])
         category = validated_data.pop('category', None)
         uploaded_images = validated_data.pop('uploaded_images', [])
+        
         # Update basic product fields
         for attr, value in validated_data.items():
             setattr(instance, attr, value)
@@ -199,10 +200,8 @@ class ProductSerializer(serializers.ModelSerializer):
             # Add new features
             feature_values = []
             for feature_data in features_data:
-                feature_name = list(feature_data.keys())[0]
-                
-                feature_value_text = list(feature_data.values())[0]
-
+                feature_name = feature_data.get('feature')
+                feature_value_text = feature_data.get('value')
 
                 # Get or create the feature
                 feature, _ = Feature.objects.get_or_create(name=feature_name)
@@ -213,31 +212,26 @@ class ProductSerializer(serializers.ModelSerializer):
                     value=feature_value_text
                 )
 
-                # Collect feature values to add
                 feature_values.append(feature_value)
 
-            # Add all feature values to the product
             instance.features.add(*feature_values)
+
         # Handle image update - append new images without deleting existing ones
         if uploaded_images:
             # Determine the next primary status based on existing images
             existing_primary = instance.images.filter(is_primary=True).exists()
-            
-            # Create new images
+
             new_images = []
             for i, image in enumerate(uploaded_images):
-                # Only set is_primary=True if no primary image exists and it's the first new image
                 is_primary = not existing_primary and i == 0
-                
                 new_images.append(
                     ProductImage(
-                        product=instance, 
-                        image=image, 
+                        product=instance,
+                        image=image,
                         is_primary=is_primary
                     )
                 )
-            
-            # Bulk create new images
+
             ProductImage.objects.bulk_create(new_images)
 
         return instance
