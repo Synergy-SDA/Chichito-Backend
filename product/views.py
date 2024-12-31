@@ -119,27 +119,106 @@ class ProductAPIView(APIView):
         return Response(serializer.data)
 
     @extend_schema(
-        request=ProductSerializer,
+        request={
+            "multipart/form-data": {
+                "type": "object",
+                "properties": {
+                    "name": {"type": "string", "description": "Name of the product"},
+                    "description": {"type": "string", "description": "Description of the product"},
+                    "price": {"type": "number", "description": "Price of the product"},
+                    "count_exist": {"type": "integer", "description": "Stock count for the product"},
+                    "features": {
+                        "type": "array",
+                        "items": {
+                            "type": "object",
+                            "properties": {
+                                "feature": {"type": "string", "description": "Feature name"},
+                                "value": {"type": "string", "description": "Feature value"}
+                            }
+                        }
+                    },
+                    "uploaded_images": {"type": "array", "items": {"type": "string", "format": "binary"}},
+                    "category": {"type": "integer"}
+                }
+            },
+        },
         responses=ProductSerializer,
-        description="Create a new product"
+        description="Completely update an existing product"
     )
+
+
     def put(self, request, pk=None, *args, **kwargs):
-        """Update a product completely."""
+        """Completely update a product."""
         try:
             product = Product.objects.get(pk=pk)
         except Product.DoesNotExist:
             return Response({"detail": "Product not found."}, status=status.HTTP_404_NOT_FOUND)
 
-        serializer = ProductSerializer(product, data=request.data)
+        # Parse and validate 'features' field (similar to 'POST' and 'PATCH')
+        features = request.data.get('features')
+        if isinstance(features, str):
+            try:
+                features = json.loads(features)  # Parse JSON string to Python list
+            except json.JSONDecodeError:
+                return Response(
+                    {"features": ["Invalid JSON format for features."]},
+                    status=status.HTTP_400_BAD_REQUEST,
+                )
+
+        if features:
+            if not isinstance(features, list):
+                return Response(
+                    {"features": ["Features must be a list of dictionaries."]},
+                    status=status.HTTP_400_BAD_REQUEST,
+                )
+
+            for i, feature in enumerate(features):
+                if not isinstance(feature, dict) or 'feature' not in feature or 'value' not in feature:
+                    return Response(
+                        {"features": {i: "Each item must be a dictionary with 'feature' and 'value' keys."}},
+                        status=status.HTTP_400_BAD_REQUEST,
+                    )
+
+        # Prepare the data for the serializer
+        data = request.data.dict() if isinstance(request.data, QueryDict) else request.data
+        data.update(request.FILES)  # Include files in the data
+        if features:
+            data['features'] = features  # Replace features with the parsed list
+
+        # Pass the formatted data to the serializer
+        serializer = ProductSerializer(product, data=data, partial=False)  # Use partial=False to force a full update
         if serializer.is_valid():
-            serializer.save()
+            serializer.save()  # Save the fully updated product
             return Response(serializer.data)
+
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
     @extend_schema(
-        request=ProductSerializer,
+        request={
+            "multipart/form-data": {
+                "type": "object",
+                "properties": {
+                    "name": {"type": "string", "description": "Name of the product"},
+                    "description": {"type": "string", "description": "Description of the product"},
+                    "price": {"type": "number", "description": "Price of the product"},
+                    "count_exist": {"type": "integer", "description": "Stock count for the product"},
+                    "features": {
+                        "type": "array",
+                        "items": {
+                            "type": "object",
+                            "properties": {
+                                "feature": {"type": "string", "description": "Feature name"},
+                                "value": {"type": "string", "description": "Feature value"}
+                            }
+                        }
+                    },
+                    "uploaded_images": {"type": "array", "items": {"type": "string", "format": "binary"}},
+                    "category": {"type": "integer"}
+                }
+            },
+        },
         responses=ProductSerializer,
-        description="Create a new product"
+        description="Partially update an existing product with the ability to modify specific fields."
     )
     def patch(self, request, pk=None, *args, **kwargs):
         """Partially update a product."""
@@ -148,10 +227,44 @@ class ProductAPIView(APIView):
         except Product.DoesNotExist:
             return Response({"detail": "Product not found."}, status=status.HTTP_404_NOT_FOUND)
 
-        serializer = ProductSerializer(product, data=request.data, partial=True)
+        # Parse features (same as in post method)
+        features = request.data.get('features')
+        if isinstance(features, str):
+            try:
+                features = json.loads(features)  # Parse JSON string to Python list
+            except json.JSONDecodeError:
+                return Response(
+                    {"features": ["Invalid JSON format for features."]},
+                    status=status.HTTP_400_BAD_REQUEST,
+                )
+
+        # Validate the features format
+        if features:
+            if not isinstance(features, list):
+                return Response(
+                    {"features": ["Features must be a list of dictionaries."]},
+                    status=status.HTTP_400_BAD_REQUEST,
+                )
+            
+            for i, feature in enumerate(features):
+                if not isinstance(feature, dict) or 'feature' not in feature or 'value' not in feature:
+                    return Response(
+                        {"features": {i: "Each item must be a dictionary with 'feature' and 'value' keys."}},
+                        status=status.HTTP_400_BAD_REQUEST,
+                    )
+
+        # Update the product instance with new data
+        data = request.data.dict() if isinstance(request.data, QueryDict) else request.data
+        data.update(request.FILES)  # Include files in the data
+        if features:
+            data['features'] = features  # Replace features with the updated list
+
+        # Pass the formatted data to the serializer
+        serializer = ProductSerializer(product, data=data, partial=True)
         if serializer.is_valid():
             serializer.save()
             return Response(serializer.data)
+
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
     def delete(self, request, pk=None, *args, **kwargs):
