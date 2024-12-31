@@ -104,7 +104,8 @@ class UserLoginSerializer(serializers.ModelSerializer):
         
         if not user.check_password(password):
             raise AuthenticationFailed('Invalid password, try again')
-        
+        user.last_login = timezone.now()
+        user.save(update_fields=['last_login'])
         tokens = user.tokens()
         
         return {
