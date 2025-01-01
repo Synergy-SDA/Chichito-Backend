@@ -65,6 +65,11 @@ class ProductSerializer(serializers.ModelSerializer):
         allow_empty=True,
         allow_null=True
     )
+    primary_image_id = serializers.IntegerField(
+        write_only=True,
+        required=False,
+        allow_null=True
+    )
     is_liked = serializers.SerializerMethodField()
 
     class Meta:
@@ -84,6 +89,7 @@ class ProductSerializer(serializers.ModelSerializer):
             'product_features',
             'images',
             'uploaded_images',
+            'primary_image_id',
             'is_liked'
         ]
 
