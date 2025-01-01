@@ -163,10 +163,6 @@ class ProductAPIView(APIView):
                         },
                         "nullable": True
                     },
-                    "primary_image_id": {
-                        "type": "integer",
-                        "nullable": True
-                    },
                     "category": {
                         "type": "integer",
                         "nullable": True
@@ -205,9 +201,10 @@ class ProductAPIView(APIView):
         
         # Prepare data for serializer
         data = request.data.dict() if hasattr(request.data, 'dict') else request.data.copy()
-        
+        data.update(request.FILES)
         if features:
             data['features'] = features
+        uploaded_images = request.FILES.getlist('uploaded_images')
         if uploaded_images:
             data['uploaded_images'] = uploaded_images
 
