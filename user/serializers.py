@@ -104,7 +104,8 @@ class UserLoginSerializer(serializers.ModelSerializer):
         
         if not user.check_password(password):
             raise AuthenticationFailed('Invalid password, try again')
-        
+        user.last_login = timezone.now()
+        user.save(update_fields=['last_login'])
         tokens = user.tokens()
         
         return {
@@ -216,5 +217,5 @@ class UserToAdminSerializer(serializers.Serializer):
 class UserListSerializer(serializers.ModelSerializer):
     class Meta:
         model = User
-        fields = ['id', 'email', 'username']
+        fields = ['id', 'email', 'username','first_name', 'last_name','date_joined', 'last_login','is_superuser','is_staff']
 

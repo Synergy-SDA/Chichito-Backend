@@ -16,9 +16,13 @@ from rest_framework.permissions import IsAuthenticated
 from .services import FavoritService , ProductService
 from .permissions import IsAdminOrReadOnly
 from drf_spectacular.types import OpenApiTypes
+from django.http import QueryDict
+import json
+import logging
 from  django.core.cache import cache
 from django.conf import settings
 
+logger = logging.getLogger(__name__)
 
 CACHE_TTL = getattr(settings, 'CACHE_TTL', 60 * 15)
 class CustomPagination(PageNumberPagination):
@@ -64,18 +68,77 @@ class ProductAPIView(APIView):
     parser_classes = [MultiPartParser, FormParser, JSONParser]
     permission_classes = [IsAdminOrReadOnly]
     @extend_schema(
-        request=ProductSerializer,
+        request={
+            "multipart/form-data": {
+                "type": "object",
+                "properties": {
+                    "name": {"type": "string", "description": "Name of the product"},
+                    "description": {"type": "string", "description": "Description of the product"},
+                    "price": {"type": "number", "description": "Price of the product"},
+                    "count_exist": {"type": "integer", "description": "Stock count for the product"},
+                    "features": {
+                        "type": "array",
+                        "items": {
+                            "type": "object",
+                            "properties": {
+                                "key": {"type": "string", "description": "Feature name"},
+                                "value": {"type": "string", "description": "Feature value"}
+                            }
+                        }
+                    },
+                    "uploaded_images": {"type": "array", "items": {"type": "string", "format": "binary"}},
+                    "category": {"type": "integer"}
+                }
+            }
+        },
         responses=ProductSerializer,
-        description="Create a new product"
+        description="Create a new product with all supported fields.",
     )
+
     def post(self, request, *args, **kwargs):
-        """Create a new product."""
-        serializer = ProductSerializer(data=request.data)
+        print("Raw Request Data:", request.data)
+        features = request.data.get('features')
+        print("Raw Features Field:", features)
+
+        # Parse the features field if it's a stringified JSON array
+        if isinstance(features, str):
+            try:
+                features = json.loads(features)  # Parse JSON string to Python list
+                print("Parsed Features:", features)
+            except json.JSONDecodeError:
+                return Response(
+                    {"features": ["Invalid JSON format for features."]},
+                    status=status.HTTP_400_BAD_REQUEST,
+                )
+
+        # Validate the features format
+        if not isinstance(features, list):
+            return Response(
+                {"features": ["Features must be a list of dictionaries."]},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        for i, feature in enumerate(features):
+            if not isinstance(feature, dict) or 'feature' not in feature or 'value' not in feature:
+                return Response(
+                    {"features": {i: "Each item must be a dictionary with 'feature' and 'value' keys."}},
+                    status=status.HTTP_400_BAD_REQUEST,
+                )
+
+        # Build a new mutable dictionary with parsed data
+        data = request.data.dict() if isinstance(request.data, QueryDict) else request.data
+        data.update(request.FILES)  # Include files in the data
+        data['features'] = features  # Replace features with parsed list
+        print("Formatted Data:", data)
+
+        # Pass the formatted data to the serializer
+        serializer = ProductSerializer(data=data)
         if serializer.is_valid():
             serializer.save()
             return Response(serializer.data, status=status.HTTP_201_CREATED)
-        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
+        print("Serializer Errors:", serializer.errors)  # Debug serializer errors
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
     def get(self, request, pk=None, *args, **kwargs):
         """Retrieve a single product by ID."""
         try:
@@ -86,40 +149,103 @@ class ProductAPIView(APIView):
         serializer = ProductSerializer(product, context={'request': request})
         return Response(serializer.data)
 
-    @extend_schema(
-        request=ProductSerializer,
-        responses=ProductSerializer,
-        description="Create a new product"
-    )
-    def put(self, request, pk=None, *args, **kwargs):
-        """Update a product completely."""
-        try:
-            product = Product.objects.get(pk=pk)
-        except Product.DoesNotExist:
-            return Response({"detail": "Product not found."}, status=status.HTTP_404_NOT_FOUND)
 
-        serializer = ProductSerializer(product, data=request.data)
-        if serializer.is_valid():
-            serializer.save()
-            return Response(serializer.data)
-        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
     @extend_schema(
-        request=ProductSerializer,
-        responses=ProductSerializer,
-        description="Create a new product"
+        request={
+            "multipart/form-data": {
+                "type": "object",
+                "properties": {
+                    "name": {
+                        "type": "string",
+                        "description": "Name of the product"
+                    },
+                    "description": {
+                        "type": "string",
+                        "description": "Description of the product",
+                        "nullable": True
+                    },
+                    "price": {
+                        "type": "number",
+                        "description": "Price of the product"
+                    },
+                    "count_exist": {
+                        "type": "integer",
+                        "description": "Stock count for the product"
+                    },
+                    "features": {
+                        "type": "array",
+                        "items": {
+                            "type": "object",
+                            "properties": {
+                                "feature": {"type": "string"},
+                                "value": {"type": "string"}
+                            }
+                        },
+                        "nullable": True
+                    },
+                    "uploaded_images": {
+                        "type": "array",
+                        "items": {
+                            "type": "string",
+                            "format": "binary"
+                        },
+                        "nullable": True
+                    },
+                    "primary_image_id": {
+                        "type": "integer",
+                        "nullable": True
+                    },
+                    "category": {
+                        "type": "integer",
+                        "nullable": True
+                    }
+                }
+            }
+        }
     )
-    def patch(self, request, pk=None, *args, **kwargs):
+    def patch(self, request, pk):
         """Partially update a product."""
+        logger.info("PATCH request received with data: %s", request.data)
+
         try:
             product = Product.objects.get(pk=pk)
         except Product.DoesNotExist:
-            return Response({"detail": "Product not found."}, status=status.HTTP_404_NOT_FOUND)
+            return Response(
+                {"detail": "Product not found."}, 
+                status=status.HTTP_404_NOT_FOUND
+            )
 
-        serializer = ProductSerializer(product, data=request.data, partial=True)
+        # Handle features
+        features = request.data.get('features')
+        if features:
+            if isinstance(features, str):
+                try:
+                    features = json.loads(features)
+                except json.JSONDecodeError:
+                    return Response(
+                        {"features": ["Invalid JSON format for features."]},
+                        status=status.HTTP_400_BAD_REQUEST,
+                    )
+
+
+        # Handle uploaded_images
+        uploaded_images = request.FILES.getlist('uploaded_images')
+        
+        # Prepare data for serializer
+        data = request.data.dict() if hasattr(request.data, 'dict') else request.data.copy()
+        
+        if features:
+            data['features'] = features
+        if uploaded_images:
+            data['uploaded_images'] = uploaded_images
+
+        # Validate and save
+        serializer = ProductSerializer(product, data=data, partial=True)
         if serializer.is_valid():
             serializer.save()
             return Response(serializer.data)
+        
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
     def delete(self, request, pk=None, *args, **kwargs):
