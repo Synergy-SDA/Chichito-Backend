@@ -243,3 +243,25 @@ class UserOrderHistoryAPIView(APIView):
         serializer = OrderSerializer(paginated_orders, many=True)
 
         return paginator.get_paginated_response(serializer.data)
+
+
+
+class AllOrdersAPIView(APIView):
+    permission_classes = [IsAdminUser]
+
+    @extend_schema(
+        summary="Get All Orders",
+        description="Retrieve a paginated list of all orders.",
+        responses={
+            200: OrderSerializer(many=True),
+        },
+    )
+    def get(self, request):
+        orders = Order.objects.all().order_by('-created_at')
+        paginator = PageNumberPagination()
+        paginator.page_size = 10
+        paginated_orders = paginator.paginate_queryset(orders, request)
+
+        serializer = OrderSerializer(paginated_orders, many=True)
+
+        return paginator.get_paginated_response(serializer.data)
