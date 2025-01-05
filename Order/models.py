@@ -36,7 +36,7 @@ class Order(models.Model):
     Fname_of_reciever = models.CharField(max_length=255 , blank=True , null=True,)
     Lname_of_reciever = models.CharField(max_length=255 , blank=True , null=True,)
     address = models.CharField(max_length=512 , blank=True , null=True,)
-    postal_code = models.IntegerField(null=True,)
+    postal_code = models.BigIntegerField(null=True,)
     province = models.CharField(max_length=255 , blank=True , null=True,)
     city = models.CharField(max_length=255 , blank=True , null=True,)
     phone_number = models.CharField(max_length=255 , blank=True , null=True,) 
