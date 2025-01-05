@@ -246,8 +246,6 @@ AWS_STORAGE_BUCKET_NAME = LIARA_BUCKET_NAME
 AWS_S3_ENDPOINT_URL     = LIARA_ENDPOINT
 AWS_S3_REGION_NAME      = 'us-east-1' 
 
-if not REDIS_URL:
-    raise ValueError("REDIS_URL is not set in the environment variables!")
 
 CACHE_TTL = 60 * 15
 CACHES = {
