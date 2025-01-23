@@ -91,7 +91,7 @@ class OneTimePassword(models.Model):
 
 class Wallet(models.Model):
     user = models.OneToOneField(User, on_delete=models.CASCADE) 
-    balance = models.DecimalField(max_digits=10, decimal_places=2, default=0.00) 
+    balance = models.DecimalField(max_digits=14, decimal_places=2, default=0.00) 
 
     def str(self):
         return f"Wallet for {self.user.username}"

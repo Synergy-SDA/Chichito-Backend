@@ -112,9 +112,9 @@ class WalletPaymentAPIView(APIView):
         serializer = PaymentSerializer(data=request.data)
         if serializer.is_valid():
             try:
-                print("jon baba")
+                
                 order = serializer.process_payment(serializer.validated_data)
-                print("va?")
+            
                 return Response(
                     {
                         "message": "Payment successful",
