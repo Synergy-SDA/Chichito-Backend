@@ -46,7 +46,7 @@ class Order(models.Model):
                        , 'province' , 'city' , 'phone_number']
 
     def calculate_total_price(self):
-        print("vvv")
+    
         self.total_price = sum(item.total_price() for item in self.items.all())
         self.save()
 
