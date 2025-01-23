@@ -13,7 +13,7 @@ class Cart(models.Model):
 class CartItem(models.Model):
     cart = models.ForeignKey(Cart, on_delete=models.CASCADE, related_name="items")
     product = models.ForeignKey(Product, on_delete=models.CASCADE)
-    quantity = models.PositiveIntegerField(default=1)
+    quantity = models.PositiveIntegerField(default=0)
     gift_wrap = models.ForeignKey('GiftWrap', on_delete=models.SET_NULL, blank=True, null=True)
     gift_wrap_message = models.TextField(blank=True, null=True)  # Message specific to the cart item
     created_at = models.DateTimeField(auto_now_add=True)
