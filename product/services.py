@@ -68,7 +68,6 @@ class ProductService:
     @staticmethod
     def get_most_sold_products(limit=8):
         try:
-            # Annotating sold_count based on the quantity of order items for each product
             sold_products = (
                 Product.objects
                 .annotate(
@@ -77,15 +76,13 @@ class ProductService:
                         Value(0)
                     )
                 )
-                .order_by('-sold_count')[:limit]  # Get the top 'limit' sold products
+                .order_by('-sold_count')[:limit]  
             )
 
-            # Debugging print to see the result of the query
             print(f"Sold Products: {sold_products}")
             
-            # If fewer than `limit` products are sold, add unsold products
+          
             if sold_products.count() < limit:
-                # Getting additional products to make up for the missing count
                 additional_products = (
                     Product.objects
                     .exclude(id__in=[product.id for product in sold_products])
@@ -99,6 +96,5 @@ class ProductService:
             return sold_products
 
         except Exception as e:
-            # Print exception details to help debug the issue
             print(f"Error occurred: {str(e)}")
             return []

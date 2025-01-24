@@ -100,10 +100,9 @@ class ProductAPIView(APIView):
         features = request.data.get('features')
         print("Raw Features Field:", features)
 
-        # Parse the features field if it's a stringified JSON array
         if isinstance(features, str):
             try:
-                features = json.loads(features)  # Parse JSON string to Python list
+                features = json.loads(features)  
                 print("Parsed Features:", features)
             except json.JSONDecodeError:
                 return Response(
@@ -111,7 +110,6 @@ class ProductAPIView(APIView):
                     status=status.HTTP_400_BAD_REQUEST,
                 )
 
-        # Validate the features format
         if not isinstance(features, list):
             return Response(
                 {"features": ["Features must be a list of dictionaries."]},
@@ -125,19 +123,17 @@ class ProductAPIView(APIView):
                     status=status.HTTP_400_BAD_REQUEST,
                 )
 
-        # Build a new mutable dictionary with parsed data
         data = request.data.dict() if isinstance(request.data, QueryDict) else request.data
-        data.update(request.FILES)  # Include files in the data
-        data['features'] = features  # Replace features with parsed list
+        data.update(request.FILES)  
+        data['features'] = features 
         print("Formatted Data:", data)
 
-        # Pass the formatted data to the serializer
         serializer = ProductSerializer(data=data)
         if serializer.is_valid():
             serializer.save()
             return Response(serializer.data, status=status.HTTP_201_CREATED)
 
-        print("Serializer Errors:", serializer.errors)  # Debug serializer errors
+        print("Serializer Errors:", serializer.errors) 
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
     def get(self, request, pk=None, *args, **kwargs):
         """Retrieve a single product by ID."""
@@ -216,7 +212,6 @@ class ProductAPIView(APIView):
                 status=status.HTTP_404_NOT_FOUND
             )
 
-        # Handle features
         features = request.data.get('features')
         if features:
             if isinstance(features, str):
@@ -229,10 +224,8 @@ class ProductAPIView(APIView):
                     )
 
 
-        # Handle uploaded_images
         uploaded_images = request.FILES.getlist('uploaded_images')
         
-        # Prepare data for serializer
         data = request.data.dict() if hasattr(request.data, 'dict') else request.data.copy()
         
         if features:
@@ -240,7 +233,6 @@ class ProductAPIView(APIView):
         if uploaded_images:
             data['uploaded_images'] = uploaded_images
 
-        # Validate and save
         serializer = ProductSerializer(product, data=data, partial=True)
         if serializer.is_valid():
             serializer.save()
@@ -412,16 +404,13 @@ class ProductPerCategoryAPIView(APIView):
 
     def get(self, request, category_name=None, *args, **kwargs):
         try:
-            # Retrieve the category by its name
             category = Category.objects.get(name=category_name)
         except Category.DoesNotExist:
             return Response({"detail": "Category not found."}, status=status.HTTP_404_NOT_FOUND)
 
-        # Filter products by category
         products = Product.objects.filter(category=category)
         serializer = ProductSerializer(products, many=True)
 
-        # Return the serialized products data
         return Response(serializer.data, status=status.HTTP_200_OK)
 
 class ProductFilterAPIView(APIView):
@@ -478,7 +467,7 @@ class ProductFilterAPIView(APIView):
 class ProductSortPriceAPIView(APIView):
 
     @extend_schema(
-        request=None,  # No body for GET method
+        request=None,  
         responses=ProductSerializer(many=True),
         description="Sort products by maximum price in descending order.",
         parameters=[
@@ -496,18 +485,16 @@ class ProductSortPriceAPIView(APIView):
     def get(self, request, *args, **kwargs):
         order = request.query_params.get('order', 'desc').lower()
 
-        # Validate `order` parameter
         if order not in ['asc', 'desc']:
             return Response(
                 {"error": "Invalid order value. Use 'asc' or 'desc'."},
                 status=status.HTTP_400_BAD_REQUEST
             )
 
-        # Sort by price in descending order (maximum price first)
         if order == 'asc':
             sorted_products = Product.objects.all().order_by('price')
         else:
-            sorted_products = Product.objects.all().order_by('-price')  # Descending
+            sorted_products = Product.objects.all().order_by('-price')  
 
         serializer = ProductSerializer(sorted_products, many=True)
         return Response(serializer.data, status=status.HTTP_200_OK)
@@ -519,7 +506,7 @@ class ProductSortByNameAPIView(APIView):
     """
 
     @extend_schema(
-        request=None,  # No body for GET method
+        request=None,  
         responses=ProductSerializer(many=True),
         description="Sort products by name in ascending or descending order.",
         parameters=[
@@ -535,17 +522,14 @@ class ProductSortByNameAPIView(APIView):
         ]
     )
     def get(self, request, *args, **kwargs):
-        # Retrieve the 'order' query parameter
         order = request.query_params.get('order', 'asc').lower()
 
-        # Validate `order` parameter
         if order not in ['asc', 'desc']:
             return Response(
                 {"error": "Invalid order value. Use 'asc' or 'desc'."},
                 status=status.HTTP_400_BAD_REQUEST
             )
 
-        # Case-insensitive sorting by name
         is_desc = order == 'desc'
         sorted_products = Product.objects.all().order_by(
             Lower('name').desc() if is_desc else Lower('name')
@@ -556,7 +540,7 @@ class ProductSortByNameAPIView(APIView):
 
 class ProductSearchAPIView(APIView):
     @extend_schema(
-        request=None,  # No body for GET method
+        request=None,  
         responses=ProductSerializer(many=True),
         description="Search for products by a query string in their name.",
         parameters=[
@@ -576,7 +560,6 @@ class ProductSearchAPIView(APIView):
         if not query:
             return Response({"error": "Query parameter is required"}, status=status.HTTP_400_BAD_REQUEST)
 
-        # Filter products based on the query
         products = Product.objects.filter(name__icontains=query)
         serializer = ProductSerializer(products, many=True)
         return Response(serializer.data, status=status.HTTP_200_OK)
@@ -604,8 +587,8 @@ class ShowAllCommentView(APIView):
     serializer_class = CommentDetailSerializer
 
     def get(self, request, *args, **kwargs):
-        comments = Comment.objects.all()  # Fetch all comments
-        serializer = self.serializer_class(comments, many=True)  # Serialize the comments
+        comments = Comment.objects.all()  
+        serializer = self.serializer_class(comments, many=True) 
         return Response(serializer.data, status=status.HTTP_200_OK)  
     
     
@@ -661,12 +644,10 @@ class ProductCommentsView(APIView):
         except Product.DoesNotExist:
             return Response({"detail": "Product not found."}, status=status.HTTP_404_NOT_FOUND)
 
-        # Retrieve all comments for the product
         comments = Comment.objects.filter(product=product)
         if not comments.exists():
             return Response({"detail": "No comments found for this product."}, status=status.HTTP_404_NOT_FOUND)
 
-        # Serialize the comments
         serializer = self.serializer_class(comments, many=True)
         return Response(serializer.data, status=status.HTTP_200_OK)
 
@@ -677,18 +658,15 @@ class SimilarProductsView(APIView):
 
     def get(self, request, product_id, *args, **kwargs):
         try:
-            # Fetch the product to get its category
             product = Product.objects.get(id=product_id)
         except Product.DoesNotExist:
             return Response({"detail": "Product not found."}, status=status.HTTP_404_NOT_FOUND)
 
-        # Get up to 10 products in the same category, excluding the current product
         similar_products = Product.objects.filter(category=product.category).exclude(id=product_id)[:10]
 
         if not similar_products.exists():
-            return Response({"detail": "No similar products found."}, status=status.HTTP_404_NOT_FOUND)
+            return Response({"detail": "No similar products found."}, status=status.HTTP_200_OK)
 
-        # Serialize the similar products
         serializer = self.serializer_class(similar_products, many=True)
         return Response(serializer.data, status=status.HTTP_200_OK)
 
@@ -840,9 +818,9 @@ class FavoriteAPI(APIView):
         description="Delete a product from favorites.",
         parameters=[
             OpenApiParameter(
-                name='product_id',  # Name of the parameter
-                type=int,            # Type of the parameter (e.g., integer)
-                location=OpenApiParameter.QUERY,  # Location in query parameters
+                name='product_id',  
+                type=int,           
+                location=OpenApiParameter.QUERY,  
                 description="ID of the product to remove from favorites."
             ),
         ]
@@ -1194,14 +1172,11 @@ class ProductFilterAndSortAPIView(APIView):
         order = request.data.get('order', None)
         price_order = request.data.get('price_order', None)
 
-        # Start with all products
         queryset = Product.objects.all()
 
-        # Filter by category name
         if category_name:
             queryset = queryset.filter(category__name__iexact=category_name)
 
-        # Filter by features or direct fields
         if features_param:
             try:
                 for feature in features_param:
@@ -1211,18 +1186,16 @@ class ProductFilterAndSortAPIView(APIView):
                     if not feature_name or not feature_value:
                         continue
                     
-                    # Handle price feature (filter products less than the specified price)
                     if feature_name == "price":
                         try:
                             price_value = float(feature_value)
-                            queryset = queryset.filter(price__lt=price_value)  # Filter for price less than the given value
+                            queryset = queryset.filter(price__lt=price_value)  
                         except ValueError:
                             return Response(
                                 {"error": "Invalid value for price, should be a number."},
                                 status=status.HTTP_400_BAD_REQUEST
                             )
                     else:
-                        # Handle other features in FeatureValue model
                         queryset = queryset.filter(
                             features__feature__name=feature_name,
                             features__value=feature_value
@@ -1233,7 +1206,6 @@ class ProductFilterAndSortAPIView(APIView):
                     status=status.HTTP_400_BAD_REQUEST
                 )
 
-        # Optional: Sort by name if 'order' is specified
         if order:
             if order not in ['asc', 'desc']:
                 return Response(
@@ -1245,7 +1217,6 @@ class ProductFilterAndSortAPIView(APIView):
                 Lower('name').desc() if is_desc_name else Lower('name')
             )
 
-        # Sort by price if `price_order` is specified
         if price_order:
             if price_order not in ['asc', 'desc']:
                 return Response(
@@ -1257,7 +1228,6 @@ class ProductFilterAndSortAPIView(APIView):
                 '-price' if is_desc_price else 'price'
             )
 
-        # Serialize and return the results
         serializer = ProductSerializer(queryset, many=True)
         return Response(serializer.data, status=status.HTTP_200_OK)
 class MostSoldProductsView(APIView):
