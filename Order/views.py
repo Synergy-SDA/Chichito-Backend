@@ -41,10 +41,8 @@ class OrderListCreateView(APIView):
         try:
             serializer = CreateOrderSerializer(data=request.data, context={'request': request})
             if serializer.is_valid():
-                print("fvrv")
 
                 order = serializer.save()
-                print("fvrv")
 
                 return Response(OrderSerializer(order).data, status=status.HTTP_201_CREATED)
             return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
