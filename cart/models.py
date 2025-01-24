@@ -18,7 +18,7 @@ class CartItem(models.Model):
     gift_wrap_message = models.TextField(blank=True, null=True)  # Message specific to the cart item
     created_at = models.DateTimeField(auto_now_add=True)
     def total_price(self):
-        return self.quantity * self.product.price
+        return self.quantity * self.product.price + self.gift_wrap.price
 
     class Meta:
         unique_together = ('cart', 'product')
