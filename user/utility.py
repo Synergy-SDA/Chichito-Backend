@@ -17,7 +17,7 @@ def send_otp_email(email):
     OneTimePassword.objects.create(temp_user=temp_user, otp=otp)
     
     subject = 'One Time Password'
-    body = f'Thanks for registering on freediscussion.ir.\nYour One Time Password is {otp}' 
+    body = f'Thanks for registering on Chichito.ir.\nYour One Time Password is {otp}' 
     
     msg = EmailMessage()
     msg['Subject'] = subject
